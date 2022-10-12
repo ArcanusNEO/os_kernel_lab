@@ -60,7 +60,7 @@ endif
 
 CTYPE	:= c S
 
-LD      := $(GCCPREFIX)ld
+LD      := $(GCCPREFIX)ld.gold
 LDFLAGS	:= -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
 LDFLAGS	+= -nostdlib
 
