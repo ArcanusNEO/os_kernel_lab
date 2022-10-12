@@ -43,14 +43,14 @@ endif
 # define compiler and flags
 
 HOSTCC		:= gcc
-HOSTCFLAGS	:= -g -Wall -O2
+HOSTCFLAGS	:= -g -Wall -Wextra -O2
 
 CC		:= $(GCCPREFIX)gcc
-CFLAGS	:= -fno-builtin -fno-PIC -Wall -ggdb -m32 -gstabs -nostdinc $(DEFS)
+CFLAGS	:= -fno-builtin -fno-PIC -Wall -Wextra -ggdb -m32 -gstabs -nostdinc $(DEFS)
 CFLAGS	+= $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 CTYPE	:= c S
 
-LD      := $(GCCPREFIX)ld.gold
+LD      := $(GCCPREFIX)ld
 LDFLAGS	:= -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
 LDFLAGS	+= -nostdlib
 
@@ -150,7 +150,7 @@ bootblock = $(call totarget,bootblock)
 
 $(bootblock): $(call toobj,$(bootfiles)) | $(call totarget,sign)
 	@echo + ld $@
-	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 $^ -o $(call toobj,bootblock)
+	$(V)$(LD) $(LDFLAGS) -N -T tools/boot.ld $^ -o $(call toobj,bootblock)
 	@$(OBJDUMP) -S $(call objfile,bootblock) > $(call asmfile,bootblock)
 	@$(OBJDUMP) -t $(call objfile,bootblock) | $(SED) '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(call symfile,bootblock)
 	@$(OBJCOPY) -S -O binary $(call objfile,bootblock) $(call outfile,bootblock)
@@ -221,7 +221,7 @@ debug: $(UCOREIMG)
 	$(V)$(QEMU) -S -s -parallel stdio -hda $< -serial null &
 	$(V)sleep 2
 	$(V)$(TERMINAL)  -e "cgdb -q -x tools/gdbinit"
-	
+
 debug-nox: $(UCOREIMG)
 	$(V)$(QEMU) -S -s -serial mon:stdio -hda $< -nographic &
 	$(V)sleep 2
