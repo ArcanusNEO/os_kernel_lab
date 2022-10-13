@@ -247,7 +247,7 @@ static __noinline uint32_t read_eip(void) {
  *
  * The x86 stack pointer, namely esp, points to the lowest location on the stack
  * that is currently in use. Everything below that location in stack is free.
- * Pushing a value onto the stack will invole decreasing the stack pointer and
+ * Pushing a value onto the stack will involve decreasing the stack pointer and
  * then writing the value to the place that stack pointer pointes to. And
  * popping a value do the opposite.
  *
@@ -285,10 +285,22 @@ void print_stackframe(void) {
    * (3) from 0 .. STACKFRAME_DEPTH
    *    (3.1) printf value of ebp, eip
    *    (3.2) (uint32_t)calling arguments [0..4] = the contents in address
-   * (uint32_t)ebp +2 [0..4] (3.3) cprintf("\n"); (3.4) call
-   * print_debuginfo(eip-1) to print the C calling function name and line
-   * number, etc. (3.5) popup a calling stackframe NOTICE: the calling
-   * funciton's return addr eip  = ss:[ebp+4] the calling funciton's ebp =
-   * ss:[ebp]
+   * (uint32_t)ebp +2 [0..4]
+   *    (3.3) cprintf("\n");
+   *    (3.4) call print_debuginfo(eip-1) to print the C calling function name
+   * and line number, etc.
+   *    (3.5) popup a calling stackframe
+   *           NOTICE: the calling funciton's return addr eip  = ss:[ebp+4]
+   *                   the calling funciton's ebp = ss:[ebp]
    */
+  uint32_t ebp = read_ebp();
+  uint32_t eip = read_eip();
+  for (int i = 0; ebp && i < STACKFRAME_DEPTH; ++i) {
+    cprintf("ebp 0x%08x eip 0x%08x arg[0 ... 3] ", ebp, eip);
+    for (int j = 0; j < 4; ++j)
+      cprintf("0x%08x%c", ((uint32_t*) ebp + 2)[j], " \n"[j + 1 == 4]);
+    print_debuginfo(eip - 1);
+    eip = *((uint32_t*) ebp + 1);
+    ebp = *((uint32_t*) ebp + 0);
+  }
 }
