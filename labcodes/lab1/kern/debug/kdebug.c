@@ -297,10 +297,11 @@ void print_stackframe(void) {
   uint32_t eip = read_eip();
   for (int i = 0; ebp && i < STACKFRAME_DEPTH; ++i) {
     cprintf("ebp 0x%08x eip 0x%08x arg[0 ... 3] ", ebp, eip);
+    uint32_t* pebp = ebp;
     for (int j = 0; j < 4; ++j)
-      cprintf("0x%08x%c", ((uint32_t*) ebp + 2)[j], " \n"[j + 1 == 4]);
+      cprintf("0x%08x%c", pebp[2 + j], " \n"[j + 1 == 4]);
     print_debuginfo(eip - 1);
-    eip = *((uint32_t*) ebp + 1);
-    ebp = *((uint32_t*) ebp + 0);
+    ebp = pebp[0];
+    eip = pebp[1];
   }
 }
