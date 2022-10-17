@@ -174,15 +174,10 @@ L_SWITCH_TOU:
         switchk2u       = *tf;
         switchk2u.tf_cs = USER_CS;
         switchk2u.tf_ds = switchk2u.tf_es = switchk2u.tf_ss = USER_DS;
-        switchk2u.tf_esp = (uint32_t) tf + sizeof(struct trapframe) - 8;
 
-        // set eflags, make sure ucore can use io under user mode.
-        // if CPL > IOPL, then cpu will generate a general protection.
+        switchk2u.tf_esp = &tf->tf_esp;
         switchk2u.tf_eflags |= FL_IOPL_MASK;
-
-        // set temporary stack
-        // then iret will jump to the right stack
-        *((uint32_t*) tf - 1) = &switchk2u;
+        ((uint32_t*) tf)[-1] = &switchk2u;
       }
       break;
     case T_SWITCH_TOK:
@@ -192,9 +187,10 @@ L_SWITCH_TOK:
         tf->tf_ds = tf->tf_es = KERNEL_DS;
         tf->tf_eflags &= ~FL_IOPL_MASK;
         static struct trapframe* switchu2k;
-        switchu2k = tf->tf_esp - (sizeof(struct trapframe) - 8);
-        memmove(switchu2k, tf, sizeof(struct trapframe) - 8);
-        *((uint32_t*) tf - 1) = switchu2k;
+
+        switchu2k = tf->tf_esp - offsetof(struct trapframe, tf_esp);
+        memmove(switchu2k, tf, offsetof(struct trapframe, tf_esp));
+        ((uint32_t*) tf)[-1] = switchu2k;
       }
       break;
     case IRQ_OFFSET + IRQ_IDE1:
