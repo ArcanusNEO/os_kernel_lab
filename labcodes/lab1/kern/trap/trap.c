@@ -159,9 +159,16 @@ static void trap_dispatch(struct trapframe* tf) {
     case IRQ_OFFSET + IRQ_KBD:
       ch = cons_getc();
       cprintf("kbd [%03d] %c\n", ch, ch);
+      switch (ch) {
+        case '0': goto L_SWITCH_TOK; break;
+        case '3': goto L_SWITCH_TOU; break;
+        case 'p': print_trapframe(tf); break;
+        default: break;
+      }
       break;
     // LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
     case T_SWITCH_TOU:
+L_SWITCH_TOU:
       if (tf->tf_cs != USER_CS) {
         static struct trapframe switchk2u;
         switchk2u       = *tf;
@@ -179,6 +186,7 @@ static void trap_dispatch(struct trapframe* tf) {
       }
       break;
     case T_SWITCH_TOK:
+L_SWITCH_TOK:
       if (tf->tf_cs != KERNEL_CS) {
         tf->tf_cs = KERNEL_CS;
         tf->tf_ds = tf->tf_es = KERNEL_DS;
