@@ -6,6 +6,7 @@
 #include <memlayout.h>
 #include <mmu.h>
 #include <stdio.h>
+#include <string.h>
 #include <trap.h>
 #include <x86.h>
 
@@ -134,36 +135,35 @@ void print_regs(struct pushregs* regs) {
   cprintf("  eax  0x%08x\n", regs->reg_eax);
 }
 
-/* temporary trapframe or pointer to trapframe */
-struct trapframe switchk2u, *switchu2k;
-
 /* trap_dispatch - dispatch based on what type of trap occurred */
 static void trap_dispatch(struct trapframe* tf) {
-  char c;
+  char ch;
 
   switch (tf->tf_trapno) {
     case IRQ_OFFSET + IRQ_TIMER:
       /* LAB1 YOUR CODE : STEP 3 */
       /* handle the timer interrupt */
       /* (1) After a timer interrupt, you should record this event using a
-       * global variable (increase it), such as ticks in kern/driver/clock.c (2)
-       * Every TICK_NUM cycle, you can print some info using a funciton, such as
-       * print_ticks(). (3) Too Simple? Yes, I think so!
+       * global variable (increase it), such as ticks in kern/driver/clock.c
+       * (2) Every TICK_NUM cycle, you can print some info using a funciton,
+       * such as print_ticks().
+       * (3) Too Simple? Yes, I think so!
        */
       ++ticks;
       if (ticks % TICK_NUM == 0) print_ticks();
       break;
     case IRQ_OFFSET + IRQ_COM1:
-      c = cons_getc();
-      cprintf("serial [%03d] %c\n", c, c);
+      ch = cons_getc();
+      cprintf("serial [%03d] %c\n", ch, ch);
       break;
     case IRQ_OFFSET + IRQ_KBD:
-      c = cons_getc();
-      cprintf("kbd [%03d] %c\n", c, c);
+      ch = cons_getc();
+      cprintf("kbd [%03d] %c\n", ch, ch);
       break;
     // LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
     case T_SWITCH_TOU:
       if (tf->tf_cs != USER_CS) {
+        static struct trapframe switchk2u;
         switchk2u       = *tf;
         switchk2u.tf_cs = USER_CS;
         switchk2u.tf_ds = switchk2u.tf_es = switchk2u.tf_ss = USER_DS;
@@ -175,7 +175,7 @@ static void trap_dispatch(struct trapframe* tf) {
 
         // set temporary stack
         // then iret will jump to the right stack
-        *((uint32_t*) tf - 1) = (uint32_t) &switchk2u;
+        *((uint32_t*) tf - 1) = &switchk2u;
       }
       break;
     case T_SWITCH_TOK:
@@ -183,10 +183,10 @@ static void trap_dispatch(struct trapframe* tf) {
         tf->tf_cs = KERNEL_CS;
         tf->tf_ds = tf->tf_es = KERNEL_DS;
         tf->tf_eflags &= ~FL_IOPL_MASK;
-        switchu2k =
-          (struct trapframe*) (tf->tf_esp - (sizeof(struct trapframe) - 8));
+        static struct trapframe* switchu2k;
+        switchu2k = tf->tf_esp - (sizeof(struct trapframe) - 8);
         memmove(switchu2k, tf, sizeof(struct trapframe) - 8);
-        *((uint32_t*) tf - 1) = (uint32_t) switchu2k;
+        *((uint32_t*) tf - 1) = switchu2k;
       }
       break;
     case IRQ_OFFSET + IRQ_IDE1:
