@@ -226,6 +226,12 @@ debug-nox: $(UCOREIMG)
 	$(V)sleep 2
 	$(V)$(TERMINAL) -e "gdb -q -x tools/gdbinit"
 
+dbg-wait: $(UCOREIMG)
+	$(V)$(QEMU) -S -s -parallel stdio -hda $< -serial null
+
+dbg-nox-wait: $(UCOREIMG)
+	$(V)$(QEMU) -S -s -serial mon:stdio -hda $< -nographic
+
 .PHONY: grade touch
 
 GRADE_GDB_IN	:= .gdb.in
