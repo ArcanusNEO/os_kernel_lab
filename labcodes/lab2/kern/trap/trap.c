@@ -6,6 +6,7 @@
 #include <memlayout.h>
 #include <mmu.h>
 #include <stdio.h>
+#include <string.h>
 #include <trap.h>
 #include <x86.h>
 
@@ -32,7 +33,7 @@ static struct pseudodesc idt_pd = {sizeof(idt) - 1, (uintptr_t) idt};
 /* idt_init - initialize IDT to each of the entry points in kern/trap/vectors.S
  */
 void idt_init(void) {
-  /* LAB1 YOUR CODE : STEP 2 */
+  /* LAB1 2013280 : STEP 2 */
   /* (1) Where are the entry addrs of each Interrupt Service Routine (ISR)?
    *     All ISR's entry addrs are stored in __vectors. where is uintptr_t
    * __vectors[] ?
@@ -47,6 +48,11 @@ void idt_init(void) {
    * instruction? just google it! and check the libs/x86.h to know more. Notice:
    * the argument of lidt is idt_pd. try to find it!
    */
+  extern uintptr_t __vectors[];
+  for (int i = 0; i < LENGTHOF(idt); ++i)
+    SETGATE(idt[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
+  SETGATE(idt[T_SWITCH_TOK], 0, GD_KTEXT, __vectors[T_SWITCH_TOK], DPL_USER);
+  lidt(&idt_pd);
 }
 
 static const char* trapname(int trapno) {
@@ -131,29 +137,74 @@ void print_regs(struct pushregs* regs) {
 
 /* trap_dispatch - dispatch based on what type of trap occurred */
 static void trap_dispatch(struct trapframe* tf) {
-  char c;
+  char ch;
 
   switch (tf->tf_trapno) {
     case IRQ_OFFSET + IRQ_TIMER:
-      /* LAB1 YOUR CODE : STEP 3 */
+      /* LAB1 2013280 : STEP 3 */
       /* handle the timer interrupt */
       /* (1) After a timer interrupt, you should record this event using a
-       * global variable (increase it), such as ticks in kern/driver/clock.c (2)
-       * Every TICK_NUM cycle, you can print some info using a funciton, such as
-       * print_ticks(). (3) Too Simple? Yes, I think so!
+       * global variable (increase it), such as ticks in kern/driver/clock.c
+       * (2) Every TICK_NUM cycle, you can print some info using a funciton,
+       * such as print_ticks().
+       * (3) Too Simple? Yes, I think so!
        */
+      ++ticks;
+      if (ticks % TICK_NUM == 0) print_ticks();
       break;
     case IRQ_OFFSET + IRQ_COM1:
-      c = cons_getc();
-      cprintf("serial [%03d] %c\n", c, c);
+      ch = cons_getc();
+      cprintf("serial [%03d] %c\n", ch, ch);
       break;
     case IRQ_OFFSET + IRQ_KBD:
-      c = cons_getc();
-      cprintf("kbd [%03d] %c\n", c, c);
+      ch = cons_getc();
+      cprintf("kbd [%03d] %c\n", ch, ch);
+      switch (ch) {
+        case '0': goto L_SWITCH_TOK; break;
+        case '3': goto L_SWITCH_TOU; break;
+        case 'p': print_trapframe(tf); break;
+        default: break;
+      }
       break;
-    // LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
+    // LAB1 CHALLENGE 1 : 2013280 you should modify below codes.
     case T_SWITCH_TOU:
-    case T_SWITCH_TOK: panic("T_SWITCH_** ??\n"); break;
+L_SWITCH_TOU:
+      if (tf->tf_cs != USER_CS) {
+        static struct trapframe switchk2u;
+        // 将中断的栈帧赋给临时中断帧
+        switchk2u = *tf;
+        // 修改可执行代码段为USER_CS
+        switchk2u.tf_cs = USER_CS;
+        // 修改数据段为USER_DS
+        switchk2u.tf_ds = switchk2u.tf_es = switchk2u.tf_ss = USER_DS;
+        // 设置从中断处理程序返回时的栈地址
+        // 数值减8是因为iret不会弹出ss和esp，所以不需要这8个字节
+        switchk2u.tf_esp = (uint32_t) tf + sizeof(struct trapframe) - 8;
+        // 为了使得程序在低CPL的情况下仍然能够使用IO
+        // 需要将eflags中对应的IOPL位置成表示用户态的3
+        switchk2u.tf_eflags |= FL_IOPL_MASK;
+        // 设置中断处理例程结束时pop出的%esp，这样可以用修改后的数据来恢复上下文。
+        *((uint32_t*) tf - 1) = &switchk2u;
+        // 事实上上述代码并没有实际完成一个从内核栈到用户态栈的切换
+        // 仅仅是完成了特权级的切换。这属于正常现象。
+      }
+      break;
+    case T_SWITCH_TOK:
+L_SWITCH_TOK:
+      if (tf->tf_cs != KERNEL_CS) {
+        tf->tf_cs = KERNEL_CS;  // 修改CPL DPL IOPL
+        tf->tf_ds = tf->tf_es = KERNEL_DS;
+        tf->tf_eflags &= ~FL_IOPL_MASK;
+        static struct trapframe* switchu2k;
+        // 计算将要保存新trapFrame的用户栈地址
+        // 数值减8是因为内核调用中断时CPU没有压入ss和esp
+        switchu2k = tf->tf_esp - (sizeof(struct trapframe) - 8);
+        // 将修改后的trapFrame写入用户栈(注意当前是内核栈)。注意trapFrame中ss和esp的值不需要写入。
+        memmove(switchu2k, tf, sizeof(struct trapframe) - 8);
+        // 设置弹出esp的值为用户栈的新地址
+        *((uint32_t*) tf - 1) = switchu2k;
+      }
+      break;
     case IRQ_OFFSET + IRQ_IDE1:
     case IRQ_OFFSET + IRQ_IDE2:
       /* do nothing */
@@ -164,6 +215,7 @@ static void trap_dispatch(struct trapframe* tf) {
         print_trapframe(tf);
         panic("unexpected trap in kernel.\n");
       }
+      break;
   }
 }
 
