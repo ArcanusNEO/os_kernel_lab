@@ -49,7 +49,7 @@ void idt_init(void) {
    * the argument of lidt is idt_pd. try to find it!
    */
   extern uintptr_t __vectors[];
-  for (int i = 0; i < LENGTHOF(idt); ++i)
+  for (int i = 0; i < lengthof(idt); ++i)
     SETGATE(idt[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
   SETGATE(idt[T_SWITCH_TOK], 0, GD_KTEXT, __vectors[T_SWITCH_TOK], DPL_USER);
   lidt(&idt_pd);

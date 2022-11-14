@@ -65,6 +65,6 @@ typedef size_t ppn_t;
 #define to_struct(ptr, type, member) \
   ((type*) ((char*) (ptr) -offsetof(type, member)))
 
-#define LENGTHOF(arr) (sizeof(arr) / sizeof(arr[0]))
+#define lengthof(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #endif /* !__LIBS_DEFS_H__ */
