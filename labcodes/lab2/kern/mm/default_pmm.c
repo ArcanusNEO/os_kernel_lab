@@ -122,12 +122,13 @@ static struct Page* default_alloc_pages(size_t n) {
     }
   }
   if (page != NULL) {
-    list_del(&(page->page_link));
     if (page->property > n) {
       struct Page* p = page + n;
       p->property    = page->property - n;
-      list_add(&free_list, &(p->page_link));
+      SetPageProperty(p);
+      list_add_after(&(page->page_link), &(p->page_link));
     }
+    list_del(&(page->page_link));
     nr_free -= n;
     ClearPageProperty(page);
   }
@@ -275,7 +276,6 @@ static void default_check(void) {
 
   le = &free_list;
   while ((le = list_next(le)) != &free_list) {
-    assert(le->next->prev == le && le->prev->next == le);
     struct Page* p = le2page(le, page_link);
     count--, total -= p->property;
   }
