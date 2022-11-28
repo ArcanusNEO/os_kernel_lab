@@ -48,18 +48,18 @@
 
 #ifdef __ASSEMBLER__
 
-#  define SEG_NULL \
+  #define SEG_NULL \
     .word 0, 0;    \
     .byte 0, 0, 0, 0
 
-#  define SEG_ASM(type, base, lim)                   \
+  #define SEG_ASM(type, base, lim)                   \
     .word(((lim) >> 12) & 0xffff), ((base) &0xffff); \
     .byte(((base) >> 16) & 0xff), (0x90 | (type)),   \
       (0xC0 | (((lim) >> 28) & 0xf)), (((base) >> 24) & 0xff)
 
 #else /* not __ASSEMBLER__ */
 
-#  include <defs.h>
+  #include <defs.h>
 
 /* Gate descriptors for interrupts and traps */
 struct gatedesc {
@@ -74,7 +74,7 @@ struct gatedesc {
   unsigned gd_off_31_16 : 16;  // high bits of offset in segment
 };
 
-/* *
+  /* *
  * Set up a normal interrupt/trap gate descriptor
  *   - istrap: 1 for a trap (= exception) gate, 0 for an interrupt gate
  *   - sel: Code segment selector for interrupt/trap handler
@@ -83,31 +83,31 @@ struct gatedesc {
  *          for software to invoke this interrupt/trap gate explicitly
  *          using an int instruction.
  * */
-#  define SETGATE(gate, istrap, sel, off, dpl)              \
-    {                                                       \
-      (gate).gd_off_15_0  = (uint32_t) (off) &0xffff;       \
-      (gate).gd_ss        = (sel);                          \
-      (gate).gd_args      = 0;                              \
-      (gate).gd_rsv1      = 0;                              \
-      (gate).gd_type      = (istrap) ? STS_TG32 : STS_IG32; \
-      (gate).gd_s         = 0;                              \
-      (gate).gd_dpl       = (dpl);                          \
-      (gate).gd_p         = 1;                              \
-      (gate).gd_off_31_16 = (uint32_t) (off) >> 16;         \
+  #define SETGATE(gate, istrap, sel, off, dpl)         \
+    {                                                  \
+      (gate).gd_off_15_0 = (uint32_t) (off) &0xffff;   \
+      (gate).gd_ss = (sel);                            \
+      (gate).gd_args = 0;                              \
+      (gate).gd_rsv1 = 0;                              \
+      (gate).gd_type = (istrap) ? STS_TG32 : STS_IG32; \
+      (gate).gd_s = 0;                                 \
+      (gate).gd_dpl = (dpl);                           \
+      (gate).gd_p = 1;                                 \
+      (gate).gd_off_31_16 = (uint32_t) (off) >> 16;    \
     }
 
-/* Set up a call gate descriptor */
-#  define SETCALLGATE(gate, ss, off, dpl)             \
-    {                                                 \
-      (gate).gd_off_15_0  = (uint32_t) (off) &0xffff; \
-      (gate).gd_ss        = (ss);                     \
-      (gate).gd_args      = 0;                        \
-      (gate).gd_rsv1      = 0;                        \
-      (gate).gd_type      = STS_CG32;                 \
-      (gate).gd_s         = 0;                        \
-      (gate).gd_dpl       = (dpl);                    \
-      (gate).gd_p         = 1;                        \
-      (gate).gd_off_31_16 = (uint32_t) (off) >> 16;   \
+  /* Set up a call gate descriptor */
+  #define SETCALLGATE(gate, ss, off, dpl)            \
+    {                                                \
+      (gate).gd_off_15_0 = (uint32_t) (off) &0xffff; \
+      (gate).gd_ss = (ss);                           \
+      (gate).gd_args = 0;                            \
+      (gate).gd_rsv1 = 0;                            \
+      (gate).gd_type = STS_CG32;                     \
+      (gate).gd_s = 0;                               \
+      (gate).gd_dpl = (dpl);                         \
+      (gate).gd_p = 1;                               \
+      (gate).gd_off_31_16 = (uint32_t) (off) >> 16;  \
     }
 
 /* segment descriptors */
@@ -127,18 +127,18 @@ struct segdesc {
   unsigned sd_base_31_24 : 8;   // high bits of segment base address
 };
 
-#  define SEG_NULL                          \
+  #define SEG_NULL                          \
     (struct segdesc) {                      \
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 \
     }
 
-#  define SEG(type, base, lim, dpl)                                           \
+  #define SEG(type, base, lim, dpl)                                           \
     (struct segdesc) {                                                        \
       ((lim) >> 12) & 0xffff, (base) &0xffff, ((base) >> 16) & 0xff, type, 1, \
         dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1, (unsigned) (base) >> 24   \
     }
 
-#  define SEGTSS(type, base, lim, dpl)                                        \
+  #define SEGTSS(type, base, lim, dpl)                                        \
     (struct segdesc) {                                                        \
       (lim) & 0xffff, (base) &0xffff, ((base) >> 16) & 0xff, type, 0, dpl, 1, \
         (unsigned) (lim) >> 16, 0, 0, 1, 0, (unsigned) (base) >> 24           \
@@ -146,43 +146,43 @@ struct segdesc {
 
 /* task state segment format (as described by the Pentium architecture book) */
 struct taskstate {
-  uint32_t  ts_link;  // old ts selector
+  uint32_t ts_link;   // old ts selector
   uintptr_t ts_esp0;  // stack pointers and segment selectors
-  uint16_t  ts_ss0;   // after an increase in privilege level
-  uint16_t  ts_padding1;
+  uint16_t ts_ss0;    // after an increase in privilege level
+  uint16_t ts_padding1;
   uintptr_t ts_esp1;
-  uint16_t  ts_ss1;
-  uint16_t  ts_padding2;
+  uint16_t ts_ss1;
+  uint16_t ts_padding2;
   uintptr_t ts_esp2;
-  uint16_t  ts_ss2;
-  uint16_t  ts_padding3;
+  uint16_t ts_ss2;
+  uint16_t ts_padding3;
   uintptr_t ts_cr3;  // page directory base
   uintptr_t ts_eip;  // saved state from last task switch
-  uint32_t  ts_eflags;
-  uint32_t  ts_eax;  // more saved state (registers)
-  uint32_t  ts_ecx;
-  uint32_t  ts_edx;
-  uint32_t  ts_ebx;
+  uint32_t ts_eflags;
+  uint32_t ts_eax;  // more saved state (registers)
+  uint32_t ts_ecx;
+  uint32_t ts_edx;
+  uint32_t ts_ebx;
   uintptr_t ts_esp;
   uintptr_t ts_ebp;
-  uint32_t  ts_esi;
-  uint32_t  ts_edi;
-  uint16_t  ts_es;  // even more saved state (segment selectors)
-  uint16_t  ts_padding4;
-  uint16_t  ts_cs;
-  uint16_t  ts_padding5;
-  uint16_t  ts_ss;
-  uint16_t  ts_padding6;
-  uint16_t  ts_ds;
-  uint16_t  ts_padding7;
-  uint16_t  ts_fs;
-  uint16_t  ts_padding8;
-  uint16_t  ts_gs;
-  uint16_t  ts_padding9;
-  uint16_t  ts_ldt;
-  uint16_t  ts_padding10;
-  uint16_t  ts_t;     // trap on task switch
-  uint16_t  ts_iomb;  // i/o map base address
+  uint32_t ts_esi;
+  uint32_t ts_edi;
+  uint16_t ts_es;  // even more saved state (segment selectors)
+  uint16_t ts_padding4;
+  uint16_t ts_cs;
+  uint16_t ts_padding5;
+  uint16_t ts_ss;
+  uint16_t ts_padding6;
+  uint16_t ts_ds;
+  uint16_t ts_padding7;
+  uint16_t ts_fs;
+  uint16_t ts_padding8;
+  uint16_t ts_gs;
+  uint16_t ts_padding9;
+  uint16_t ts_ldt;
+  uint16_t ts_padding10;
+  uint16_t ts_t;     // trap on task switch
+  uint16_t ts_iomb;  // i/o map base address
 } __attribute__((packed));
 
 #endif /* !__ASSEMBLER__ */
@@ -242,8 +242,8 @@ struct taskstate {
 #define PTE_PS  0x080  // Page Size
 #define PTE_MBZ 0x180  // Bits must be zero
 #define PTE_AVAIL \
-  0xE00  // Available for software use
-         // The PTE_AVAIL bits aren't used by the kernel or interpreted by the
+  0xE00  // Available for software use                                         \
+         // The PTE_AVAIL bits aren't used by the kernel or interpreted by the \
          // hardware, so user processes are allowed to set them arbitrarily.
 
 #define PTE_USER (PTE_U | PTE_W | PTE_P)

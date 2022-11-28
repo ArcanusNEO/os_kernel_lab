@@ -67,8 +67,6 @@ typedef size_t ppn_t;
 #define to_struct(ptr, type, member) \
   ((type*) ((char*) (ptr) -offsetof(type, member)))
 
-#define lengthof(arr) (sizeof(arr) / sizeof(arr[0]))
-
 #define true_inline __attribute__((always_inline)) inline
 
 #define quote_helper(content) #content
@@ -109,10 +107,6 @@ typedef size_t ppn_t;
     (st##_##uninit)(*(void**) pinstance); \
     free(*(void**) pinstance);            \
   }
-
-true_inline void _generic_release_(void* ptr) {
-  free(*(void**) ptr);
-}
 
 #define smart __attribute__((cleanup(_generic_release_)))
 

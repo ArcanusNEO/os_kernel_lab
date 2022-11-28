@@ -50,20 +50,20 @@ static void delay(void) {
 #define LPTPORT 0x378
 
 static uint16_t* crt_buf;
-static uint16_t  crt_pos;
-static uint16_t  addr_6845;
+static uint16_t crt_pos;
+static uint16_t addr_6845;
 
 /* TEXT-mode CGA/VGA display output */
 
 static void cga_init(void) {
-  volatile uint16_t* cp  = (uint16_t*) (CGA_BUF + KERNBASE);
-  uint16_t           was = *cp;
-  *cp                    = (uint16_t) 0xA55A;
+  volatile uint16_t* cp = (uint16_t*) (CGA_BUF + KERNBASE);
+  uint16_t was = *cp;
+  *cp = (uint16_t) 0xA55A;
   if (*cp != 0xA55A) {
-    cp        = (uint16_t*) (MONO_BUF + KERNBASE);
+    cp = (uint16_t*) (MONO_BUF + KERNBASE);
     addr_6845 = MONO_BASE;
   } else {
-    *cp       = was;
+    *cp = was;
     addr_6845 = CGA_BASE;
   }
 
@@ -103,12 +103,16 @@ static void serial_init(void) {
   (void) inb(COM1 + COM_IIR);
   (void) inb(COM1 + COM_RX);
 
-  if (serial_exists) { pic_enable(IRQ_COM1); }
+  if (serial_exists) {
+    pic_enable(IRQ_COM1);
+  }
 }
 
 static void lpt_putc_sub(int c) {
   int i;
-  for (i = 0; !(inb(LPTPORT + 1) & 0x80) && i < 12800; i++) { delay(); }
+  for (i = 0; !(inb(LPTPORT + 1) & 0x80) && i < 12800; i++) {
+    delay();
+  }
   outb(LPTPORT + 0, c);
   outb(LPTPORT + 2, 0x08 | 0x04 | 0x01);
   outb(LPTPORT + 2, 0x08);
@@ -128,18 +132,20 @@ static void lpt_putc(int c) {
 /* cga_putc - print character to console */
 static void cga_putc(int c) {
   // set black on white
-  if (!(c & ~0xFF)) { c |= 0x0700; }
+  if (!(c & ~0xFF)) {
+    c |= 0x0700;
+  }
 
   switch (c & 0xff) {
-    case '\b':
+    case '\b' :
       if (crt_pos > 0) {
         crt_pos--;
         crt_buf[crt_pos] = (c & ~0xff) | ' ';
       }
       break;
-    case '\n': crt_pos += CRT_COLS;
-    case '\r': crt_pos -= (crt_pos % CRT_COLS); break;
-    default:
+    case '\n' : crt_pos += CRT_COLS;
+    case '\r' : crt_pos -= (crt_pos % CRT_COLS); break;
+    default :
       crt_buf[crt_pos++] = c;  // write the character
       break;
   }
@@ -147,8 +153,8 @@ static void cga_putc(int c) {
   // What is the purpose of this?
   if (crt_pos >= CRT_SIZE) {
     int i;
-    memmove(crt_buf, crt_buf + CRT_COLS,
-            (CRT_SIZE - CRT_COLS) * sizeof(uint16_t));
+    memmove(
+      crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) * sizeof(uint16_t));
     for (i = CRT_SIZE - CRT_COLS; i < CRT_SIZE; i++) {
       crt_buf[i] = 0x0700 | ' ';
     }
@@ -190,7 +196,7 @@ static void serial_putc(int c) {
 #define CONSBUFSIZE 512
 
 static struct {
-  uint8_t  buf[CONSBUFSIZE];
+  uint8_t buf[CONSBUFSIZE];
   uint32_t rpos;
   uint32_t wpos;
 } cons;
@@ -204,22 +210,30 @@ static void cons_intr(int (*proc)(void)) {
   while ((c = (*proc)()) != -1) {
     if (c != 0) {
       cons.buf[cons.wpos++] = c;
-      if (cons.wpos == CONSBUFSIZE) { cons.wpos = 0; }
+      if (cons.wpos == CONSBUFSIZE) {
+        cons.wpos = 0;
+      }
     }
   }
 }
 
 /* serial_proc_data - get data from serial port */
 static int serial_proc_data(void) {
-  if (!(inb(COM1 + COM_LSR) & COM_LSR_DATA)) { return -1; }
+  if (!(inb(COM1 + COM_LSR) & COM_LSR_DATA)) {
+    return -1;
+  }
   int c = inb(COM1 + COM_RX);
-  if (c == 127) { c = '\b'; }
+  if (c == 127) {
+    c = '\b';
+  }
   return c;
 }
 
 /* serial_intr - try to feed input characters from serial port */
 void serial_intr(void) {
-  if (serial_exists) { cons_intr(serial_proc_data); }
+  if (serial_exists) {
+    cons_intr(serial_proc_data);
+  }
 }
 
 /***** Keyboard input code *****/
@@ -242,277 +256,48 @@ static uint8_t shiftcode[256] = {
 static uint8_t togglecode[256] = {
   [0x3A] CAPSLOCK, [0x45] NUMLOCK, [0x46] SCROLLLOCK};
 
-static uint8_t normalmap[256] = {NO,
-                                 0x1B,
-                                 '1',
-                                 '2',
-                                 '3',
-                                 '4',
-                                 '5',
-                                 '6',  // 0x00
-                                 '7',
-                                 '8',
-                                 '9',
-                                 '0',
-                                 '-',
-                                 '=',
-                                 '\b',
-                                 '\t',
-                                 'q',
-                                 'w',
-                                 'e',
-                                 'r',
-                                 't',
-                                 'y',
-                                 'u',
-                                 'i',  // 0x10
-                                 'o',
-                                 'p',
-                                 '[',
-                                 ']',
-                                 '\n',
-                                 NO,
-                                 'a',
-                                 's',
-                                 'd',
-                                 'f',
-                                 'g',
-                                 'h',
-                                 'j',
-                                 'k',
-                                 'l',
-                                 ';',  // 0x20
-                                 '\'',
-                                 '`',
-                                 NO,
-                                 '\\',
-                                 'z',
-                                 'x',
-                                 'c',
-                                 'v',
-                                 'b',
-                                 'n',
-                                 'm',
-                                 ',',
-                                 '.',
-                                 '/',
-                                 NO,
-                                 '*',  // 0x30
-                                 NO,
-                                 ' ',
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,
-                                 '7',  // 0x40
-                                 '8',
-                                 '9',
-                                 '-',
-                                 '4',
-                                 '5',
-                                 '6',
-                                 '+',
-                                 '1',
-                                 '2',
-                                 '3',
-                                 '0',
-                                 '.',
-                                 NO,
-                                 NO,
-                                 NO,
-                                 NO,  // 0x50
-                                 [0xC7] KEY_HOME,
-                                 [0x9C] '\n' /*KP_Enter*/,
-                                 [0xB5] '/' /*KP_Div*/,
-                                 [0xC8] KEY_UP,
-                                 [0xC9] KEY_PGUP,
-                                 [0xCB] KEY_LF,
-                                 [0xCD] KEY_RT,
-                                 [0xCF] KEY_END,
-                                 [0xD0] KEY_DN,
-                                 [0xD1] KEY_PGDN,
-                                 [0xD2] KEY_INS,
-                                 [0xD3] KEY_DEL};
+static uint8_t normalmap[256] = {NO, 0x1B, '1', '2', '3', '4', '5',
+  '6',  // 0x00
+  '7', '8', '9', '0', '-', '=', '\b', '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u',
+  'i',  // 0x10
+  'o', 'p', '[', ']', '\n', NO, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+  ';',  // 0x20
+  '\'', '`', NO, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', NO,
+  '*',  // 0x30
+  NO, ' ', NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO,
+  '7',  // 0x40
+  '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', NO, NO, NO,
+  NO,  // 0x50
+  [0xC7] KEY_HOME, [0x9C] '\n' /*KP_Enter*/, [0xB5] '/' /*KP_Div*/,
+  [0xC8] KEY_UP, [0xC9] KEY_PGUP, [0xCB] KEY_LF, [0xCD] KEY_RT, [0xCF] KEY_END,
+  [0xD0] KEY_DN, [0xD1] KEY_PGDN, [0xD2] KEY_INS, [0xD3] KEY_DEL};
 
-static uint8_t shiftmap[256] = {NO,
-                                033,
-                                '!',
-                                '@',
-                                '#',
-                                '$',
-                                '%',
-                                '^',  // 0x00
-                                '&',
-                                '*',
-                                '(',
-                                ')',
-                                '_',
-                                '+',
-                                '\b',
-                                '\t',
-                                'Q',
-                                'W',
-                                'E',
-                                'R',
-                                'T',
-                                'Y',
-                                'U',
-                                'I',  // 0x10
-                                'O',
-                                'P',
-                                '{',
-                                '}',
-                                '\n',
-                                NO,
-                                'A',
-                                'S',
-                                'D',
-                                'F',
-                                'G',
-                                'H',
-                                'J',
-                                'K',
-                                'L',
-                                ':',  // 0x20
-                                '"',
-                                '~',
-                                NO,
-                                '|',
-                                'Z',
-                                'X',
-                                'C',
-                                'V',
-                                'B',
-                                'N',
-                                'M',
-                                '<',
-                                '>',
-                                '?',
-                                NO,
-                                '*',  // 0x30
-                                NO,
-                                ' ',
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                NO,
-                                '7',  // 0x40
-                                '8',
-                                '9',
-                                '-',
-                                '4',
-                                '5',
-                                '6',
-                                '+',
-                                '1',
-                                '2',
-                                '3',
-                                '0',
-                                '.',
-                                NO,
-                                NO,
-                                NO,
-                                NO,  // 0x50
-                                [0xC7] KEY_HOME,
-                                [0x9C] '\n' /*KP_Enter*/,
-                                [0xB5] '/' /*KP_Div*/,
-                                [0xC8] KEY_UP,
-                                [0xC9] KEY_PGUP,
-                                [0xCB] KEY_LF,
-                                [0xCD] KEY_RT,
-                                [0xCF] KEY_END,
-                                [0xD0] KEY_DN,
-                                [0xD1] KEY_PGDN,
-                                [0xD2] KEY_INS,
-                                [0xD3] KEY_DEL};
+static uint8_t shiftmap[256] = {NO, 033, '!', '@', '#', '$', '%',
+  '^',  // 0x00
+  '&', '*', '(', ')', '_', '+', '\b', '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U',
+  'I',  // 0x10
+  'O', 'P', '{', '}', '\n', NO, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+  ':',  // 0x20
+  '"', '~', NO, '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', NO,
+  '*',  // 0x30
+  NO, ' ', NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO,
+  '7',  // 0x40
+  '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', NO, NO, NO,
+  NO,  // 0x50
+  [0xC7] KEY_HOME, [0x9C] '\n' /*KP_Enter*/, [0xB5] '/' /*KP_Div*/,
+  [0xC8] KEY_UP, [0xC9] KEY_PGUP, [0xCB] KEY_LF, [0xCD] KEY_RT, [0xCF] KEY_END,
+  [0xD0] KEY_DN, [0xD1] KEY_PGDN, [0xD2] KEY_INS, [0xD3] KEY_DEL};
 
 #define C(x) (x - '@')
 
-static uint8_t ctlmap[256] = {NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              C('Q'),
-                              C('W'),
-                              C('E'),
-                              C('R'),
-                              C('T'),
-                              C('Y'),
-                              C('U'),
-                              C('I'),
-                              C('O'),
-                              C('P'),
-                              NO,
-                              NO,
-                              '\r',
-                              NO,
-                              C('A'),
-                              C('S'),
-                              C('D'),
-                              C('F'),
-                              C('G'),
-                              C('H'),
-                              C('J'),
-                              C('K'),
-                              C('L'),
-                              NO,
-                              NO,
-                              NO,
-                              NO,
-                              C('\\'),
-                              C('Z'),
-                              C('X'),
-                              C('C'),
-                              C('V'),
-                              C('B'),
-                              C('N'),
-                              C('M'),
-                              NO,
-                              NO,
-                              C('/'),
-                              NO,
-                              NO,
-                              [0x97] KEY_HOME,
-                              [0xB5] C('/'),
-                              [0xC8] KEY_UP,
-                              [0xC9] KEY_PGUP,
-                              [0xCB] KEY_LF,
-                              [0xCD] KEY_RT,
-                              [0xCF] KEY_END,
-                              [0xD0] KEY_DN,
-                              [0xD1] KEY_PGDN,
-                              [0xD2] KEY_INS,
-                              [0xD3] KEY_DEL};
+static uint8_t ctlmap[256] = {NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO, NO,
+  NO, NO, NO, NO, C('Q'), C('W'), C('E'), C('R'), C('T'), C('Y'), C('U'),
+  C('I'), C('O'), C('P'), NO, NO, '\r', NO, C('A'), C('S'), C('D'), C('F'),
+  C('G'), C('H'), C('J'), C('K'), C('L'), NO, NO, NO, NO, C('\\'), C('Z'),
+  C('X'), C('C'), C('V'), C('B'), C('N'), C('M'), NO, NO, C('/'), NO,
+  NO, [0x97] KEY_HOME, [0xB5] C('/'), [0xC8] KEY_UP, [0xC9] KEY_PGUP,
+  [0xCB] KEY_LF, [0xCD] KEY_RT, [0xCF] KEY_END, [0xD0] KEY_DN, [0xD1] KEY_PGDN,
+  [0xD2] KEY_INS, [0xD3] KEY_DEL};
 
 static uint8_t* charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
 
@@ -523,11 +308,13 @@ static uint8_t* charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
  * If we finish a character, return it, else 0. And return -1 if no data.
  * */
 static int kbd_proc_data(void) {
-  int             c;
-  uint8_t         data;
+  int c;
+  uint8_t data;
   static uint32_t shift;
 
-  if ((inb(KBSTATP) & KBS_DIB) == 0) { return -1; }
+  if ((inb(KBSTATP) & KBS_DIB) == 0) {
+    return -1;
+  }
 
   data = inb(KBDATAP);
 
@@ -580,7 +367,9 @@ void cons_init(void) {
   cga_init();
   serial_init();
   kbd_init();
-  if (!serial_exists) { cprintf("serial port does not exist!!\n"); }
+  if (!serial_exists) {
+    cprintf("serial port does not exist!!\n");
+  }
 }
 
 /* cons_putc - print a single character @c to console devices */
@@ -600,7 +389,7 @@ void cons_putc(int c) {
  * or 0 if none waiting.
  * */
 int cons_getc(void) {
-  int  c = 0;
+  int c = 0;
   bool intr_flag;
   local_intr_save(intr_flag);
   {
@@ -613,7 +402,9 @@ int cons_getc(void) {
     // grab the next character from the input buffer.
     if (cons.rpos != cons.wpos) {
       c = cons.buf[cons.rpos++];
-      if (cons.rpos == CONSBUFSIZE) { cons.rpos = 0; }
+      if (cons.rpos == CONSBUFSIZE) {
+        cons.rpos = 0;
+      }
     }
   }
   local_intr_restore(intr_flag);

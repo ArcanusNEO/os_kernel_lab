@@ -30,6 +30,7 @@
  */
 
 list_entry_t pra_list_head;
+
 /*
  * (2) _fifo_init_mm: init pra_list_head and let  mm->sm_priv point to the addr
  * of pra_list_head. Now, From the memory control struct mm_struct, we can
@@ -41,13 +42,14 @@ static int _fifo_init_mm(struct mm_struct* mm) {
   // cprintf(" mm->sm_priv %x in fifo_init_mm\n",mm->sm_priv);
   return 0;
 }
+
 /*
  * (3)_fifo_map_swappable: According FIFO PRA, we should link the most recent
  * arrival page at the back of pra_list_head qeueue
  */
-static int _fifo_map_swappable(struct mm_struct* mm, uintptr_t addr,
-                               struct Page* page, int swap_in) {
-  list_entry_t* head  = (list_entry_t*) mm->sm_priv;
+static int _fifo_map_swappable(
+  struct mm_struct* mm, uintptr_t addr, struct Page* page, int swap_in) {
+  list_entry_t* head = (list_entry_t*) mm->sm_priv;
   list_entry_t* entry = &(page->pra_page_link);
 
   assert(entry != NULL && head != NULL);
@@ -57,13 +59,14 @@ static int _fifo_map_swappable(struct mm_struct* mm, uintptr_t addr,
   // qeueue.
   return 0;
 }
+
 /*
  *  (4)_fifo_swap_out_victim: According FIFO PRA, we should unlink the  earliest
  * arrival page in front of pra_list_head qeueue, then assign the value of
  * *ptr_page to the addr of this page.
  */
-static int _fifo_swap_out_victim(struct mm_struct* mm, struct Page** ptr_page,
-                                 int in_tick) {
+static int _fifo_swap_out_victim(
+  struct mm_struct* mm, struct Page** ptr_page, int in_tick) {
   list_entry_t* head = (list_entry_t*) mm->sm_priv;
   assert(head != NULL);
   assert(in_tick == 0);
@@ -128,12 +131,12 @@ static int _fifo_tick_event(struct mm_struct* mm) {
 }
 
 struct swap_manager swap_manager_fifo = {
-  .name            = "fifo swap manager",
-  .init            = &_fifo_init,
-  .init_mm         = &_fifo_init_mm,
-  .tick_event      = &_fifo_tick_event,
-  .map_swappable   = &_fifo_map_swappable,
+  .name = "fifo swap manager",
+  .init = &_fifo_init,
+  .init_mm = &_fifo_init_mm,
+  .tick_event = &_fifo_tick_event,
+  .map_swappable = &_fifo_map_swappable,
   .set_unswappable = &_fifo_set_unswappable,
   .swap_out_victim = &_fifo_swap_out_victim,
-  .check_swap      = &_fifo_check_swap,
+  .check_swap = &_fifo_check_swap,
 };

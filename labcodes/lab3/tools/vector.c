@@ -9,7 +9,9 @@ int main(void) {
   for (i = 0; i < 256; i++) {
     printf(".globl vector%d\n", i);
     printf("vector%d:\n", i);
-    if (i != 8 && (i < 10 || i > 14) && i != 17) { printf("  pushl $0\n"); }
+    if (i != 8 && (i < 10 || i > 14) && i != 17) {
+      printf("  pushl $0\n");
+    }
     printf("  pushl $%d\n", i);
     printf("  jmp __alltraps\n");
   }
@@ -18,6 +20,8 @@ int main(void) {
   printf(".data\n");
   printf(".globl __vectors\n");
   printf("__vectors:\n");
-  for (i = 0; i < 256; i++) { printf("  .long vector%d\n", i); }
+  for (i = 0; i < 256; i++) {
+    printf("  .long vector%d\n", i);
+  }
   return 0;
 }

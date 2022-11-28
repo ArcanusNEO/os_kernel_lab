@@ -22,7 +22,9 @@ static char buf[BUFSIZE];
  * thus it should be copied before it is used.
  * */
 char* readline(const char* prompt) {
-  if (prompt != NULL) { cprintf("%s", prompt); }
+  if (prompt != NULL) {
+    cprintf("%s", prompt);
+  }
   int i = 0, c;
   while (1) {
     c = getchar();

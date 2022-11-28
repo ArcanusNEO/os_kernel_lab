@@ -36,7 +36,7 @@ int vcprintf(const char* fmt, va_list ap) {
  * */
 int cprintf(const char* fmt, ...) {
   va_list ap;
-  int     cnt;
+  int cnt;
   va_start(ap, fmt);
   cnt = vcprintf(fmt, ap);
   va_end(ap);
@@ -53,9 +53,11 @@ void cputchar(int c) {
  * appends a newline character.
  * */
 int cputs(const char* str) {
-  int  cnt = 0;
+  int cnt = 0;
   char c;
-  while ((c = *str++) != '\0') { cputch(c, &cnt); }
+  while ((c = *str++) != '\0') {
+    cputch(c, &cnt);
+  }
   cputch('\n', &cnt);
   return cnt;
 }

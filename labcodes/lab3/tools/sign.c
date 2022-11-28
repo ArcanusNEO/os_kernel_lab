@@ -20,17 +20,17 @@ int main(int argc, char* argv[]) {
   }
   char buf[512];
   memset(buf, 0, sizeof(buf));
-  FILE* ifp  = fopen(argv[1], "rb");
-  int   size = fread(buf, 1, st.st_size, ifp);
+  FILE* ifp = fopen(argv[1], "rb");
+  int size = fread(buf, 1, st.st_size, ifp);
   if (size != st.st_size) {
     fprintf(stderr, "read '%s' error, size is %d.\n", argv[1], size);
     return -1;
   }
   fclose(ifp);
-  buf[510]  = 0x55;
-  buf[511]  = 0xAA;
+  buf[510] = 0x55;
+  buf[511] = 0xAA;
   FILE* ofp = fopen(argv[2], "wb+");
-  size      = fwrite(buf, 1, 512, ofp);
+  size = fwrite(buf, 1, 512, ofp);
   if (size != 512) {
     fprintf(stderr, "write '%s' error, size is %d.\n", argv[2], size);
     return -1;

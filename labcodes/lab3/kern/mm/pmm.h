@@ -16,39 +16,38 @@ struct pmm_manager {
   void (*init)(
     void);  // initialize internal description&management data structure
             // (free block list, number of free block) of XXX_pmm_manager
-  void (*init_memmap)(
-    struct Page* base,
+  void (*init_memmap)(struct Page* base,
     size_t n);  // setup description&management data structcure according to
                 // the initial free physical memory space
   struct Page* (*alloc_pages)(
     size_t n);  // allocate >=n pages, depend on the allocation algorithm
   void (*free_pages)(struct Page* base,
-                     size_t n);   // free >=n pages with "base" addr of Page
+    size_t n);                    // free >=n pages with "base" addr of Page
                                   // descriptor structures(memlayout.h)
   size_t (*nr_free_pages)(void);  // return the number of free pages
   void (*check)(void);            // check the correctness of XXX_pmm_manager
 };
 
 extern const struct pmm_manager* pmm_manager;
-extern pde_t*                    boot_pgdir;
-extern uintptr_t                 boot_cr3;
+extern pde_t* boot_pgdir;
+extern uintptr_t boot_cr3;
 
 void pmm_init(void);
 
 struct Page* alloc_pages(size_t n);
-void         free_pages(struct Page* base, size_t n);
-size_t       nr_free_pages(void);
+void free_pages(struct Page* base, size_t n);
+size_t nr_free_pages(void);
 
 #define alloc_page()    alloc_pages(1)
 #define free_page(page) free_pages(page, 1)
 
-pte_t*       get_pte(pde_t* pgdir, uintptr_t la, bool create);
+pte_t* get_pte(pde_t* pgdir, uintptr_t la, bool create);
 struct Page* get_page(pde_t* pgdir, uintptr_t la, pte_t** ptep_store);
-void         page_remove(pde_t* pgdir, uintptr_t la);
+void page_remove(pde_t* pgdir, uintptr_t la);
 int page_insert(pde_t* pgdir, struct Page* page, uintptr_t la, uint32_t perm);
 
-void         load_esp0(uintptr_t esp0);
-void         tlb_invalidate(pde_t* pgdir, uintptr_t la);
+void load_esp0(uintptr_t esp0);
+void tlb_invalidate(pde_t* pgdir, uintptr_t la);
 struct Page* pgdir_alloc_page(pde_t* pgdir, uintptr_t la, uint32_t perm);
 
 void print_pgdir(void);
@@ -74,8 +73,8 @@ void print_pgdir(void);
  * */
 #define KADDR(pa)                                          \
   ({                                                       \
-    uintptr_t __m_pa  = (pa);                              \
-    size_t    __m_ppn = PPN(__m_pa);                       \
+    uintptr_t __m_pa = (pa);                               \
+    size_t __m_ppn = PPN(__m_pa);                          \
     if (__m_ppn >= npage) {                                \
       panic("KADDR called with invalid pa %08lx", __m_pa); \
     }                                                      \
@@ -83,7 +82,7 @@ void print_pgdir(void);
   })
 
 extern struct Page* pages;
-extern size_t       npage;
+extern size_t npage;
 
 static inline ppn_t page2ppn(struct Page* page) {
   return page - pages;
@@ -94,7 +93,9 @@ static inline uintptr_t page2pa(struct Page* page) {
 }
 
 static inline struct Page* pa2page(uintptr_t pa) {
-  if (PPN(pa) >= npage) { panic("pa2page called with invalid pa"); }
+  if (PPN(pa) >= npage) {
+    panic("pa2page called with invalid pa");
+  }
   return &pages[PPN(pa)];
 }
 
@@ -107,7 +108,9 @@ static inline struct Page* kva2page(void* kva) {
 }
 
 static inline struct Page* pte2page(pte_t pte) {
-  if (!(pte & PTE_P)) { panic("pte2page called with invalid pte"); }
+  if (!(pte & PTE_P)) {
+    panic("pte2page called with invalid pte");
+  }
   return pa2page(PTE_ADDR(pte));
 }
 
@@ -136,5 +139,5 @@ static inline int page_ref_dec(struct Page* page) {
 extern char bootstack[], bootstacktop[];
 
 extern void* kmalloc(size_t n);
-extern void  kfree(void* ptr, size_t n);
+extern void kfree(void* ptr, size_t n);
 #endif /* !__KERN_MM_PMM_H__ */

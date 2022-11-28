@@ -111,9 +111,11 @@ static void default_init_memmap(struct Page* base, size_t n) {
 
 static struct Page* default_alloc_pages(size_t n) {
   assert(n > 0);
-  if (n > nr_free) { return NULL; }
-  struct Page*  page = NULL;
-  list_entry_t* le   = &free_list;
+  if (n > nr_free) {
+    return NULL;
+  }
+  struct Page* page = NULL;
+  list_entry_t* le = &free_list;
   while ((le = list_next(le)) != &free_list) {
     struct Page* p = le2page(le, page_link);
     if (p->property >= n) {
@@ -124,7 +126,7 @@ static struct Page* default_alloc_pages(size_t n) {
   if (page != NULL) {
     if (page->property > n) {
       struct Page* p = page + n;
-      p->property    = page->property - n;
+      p->property = page->property - n;
       SetPageProperty(p);
       list_add_after(&(page->page_link), &(p->page_link));
     }
@@ -147,7 +149,7 @@ static void default_free_pages(struct Page* base, size_t n) {
   SetPageProperty(base);
   list_entry_t* le = list_next(&free_list);
   while (le != &free_list) {
-    p  = le2page(le, page_link);
+    p = le2page(le, page_link);
     le = list_next(le);
     if (base + base->property == p) {
       base->property += p->property;
@@ -187,7 +189,7 @@ static void basic_check(void) {
   assert(list_empty(&free_list));
 
   unsigned int nr_free_store = nr_free;
-  nr_free                    = 0;
+  nr_free = 0;
 
   assert(alloc_page() == NULL);
 
@@ -211,7 +213,7 @@ static void basic_check(void) {
 
   assert(nr_free == 0);
   free_list = free_list_store;
-  nr_free   = nr_free_store;
+  nr_free = nr_free_store;
 
   free_page(p);
   free_page(p1);
@@ -222,7 +224,7 @@ static void basic_check(void) {
 // EXERCISE 1) NOTICE: You SHOULD NOT CHANGE basic_check, default_check
 // functions!
 static void default_check(void) {
-  int           count = 0, total = 0;
+  int count = 0, total = 0;
   list_entry_t* le = &free_list;
   while ((le = list_next(le)) != &free_list) {
     struct Page* p = le2page(le, page_link);
@@ -243,7 +245,7 @@ static void default_check(void) {
   assert(alloc_page() == NULL);
 
   unsigned int nr_free_store = nr_free;
-  nr_free                    = 0;
+  nr_free = 0;
 
   free_pages(p0 + 2, 3);
   assert(alloc_pages(4) == NULL);
@@ -284,11 +286,11 @@ static void default_check(void) {
 }
 
 const struct pmm_manager default_pmm_manager = {
-  .name          = "default_pmm_manager",
-  .init          = default_init,
-  .init_memmap   = default_init_memmap,
-  .alloc_pages   = default_alloc_pages,
-  .free_pages    = default_free_pages,
+  .name = "default_pmm_manager",
+  .init = default_init,
+  .init_memmap = default_init_memmap,
+  .alloc_pages = default_alloc_pages,
+  .free_pages = default_free_pages,
   .nr_free_pages = default_nr_free_pages,
-  .check         = default_check,
+  .check = default_check,
 };

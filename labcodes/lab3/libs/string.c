@@ -10,7 +10,9 @@
  * */
 size_t strlen(const char* s) {
   size_t cnt = 0;
-  while (*s++ != '\0') { cnt++; }
+  while (*s++ != '\0') {
+    cnt++;
+  }
   return cnt;
 }
 
@@ -29,7 +31,9 @@ size_t strlen(const char* s) {
  * */
 size_t strnlen(const char* s, size_t len) {
   size_t cnt = 0;
-  while (cnt < len && *s++ != '\0') { cnt++; }
+  while (cnt < len && *s++ != '\0') {
+    cnt++;
+  }
   return cnt;
 }
 
@@ -69,7 +73,9 @@ char* strcpy(char* dst, const char* src) {
 char* strncpy(char* dst, const char* src, size_t len) {
   char* p = dst;
   while (len > 0) {
-    if ((*p = *src) != '\0') { src++; }
+    if ((*p = *src) != '\0') {
+      src++;
+    }
     p++, len--;
   }
   return dst;
@@ -94,7 +100,9 @@ int strcmp(const char* s1, const char* s2) {
 #ifdef __HAVE_ARCH_STRCMP
   return __strcmp(s1, s2);
 #else
-  while (*s1 != '\0' && *s1 == *s2) { s1++, s2++; }
+  while (*s1 != '\0' && *s1 == *s2) {
+    s1++, s2++;
+  }
   return (int) ((unsigned char) *s1 - (unsigned char) *s2);
 #endif /* __HAVE_ARCH_STRCMP */
 }
@@ -112,7 +120,9 @@ int strcmp(const char* s1, const char* s2) {
  * until @n characters match in both strings, whichever happens first.
  * */
 int strncmp(const char* s1, const char* s2, size_t n) {
-  while (n > 0 && *s1 != '\0' && *s1 == *s2) { n--, s1++, s2++; }
+  while (n > 0 && *s1 != '\0' && *s1 == *s2) {
+    n--, s1++, s2++;
+  }
   return (n == 0) ? 0 : (int) ((unsigned char) *s1 - (unsigned char) *s2);
 }
 
@@ -126,7 +136,9 @@ int strncmp(const char* s1, const char* s2, size_t n) {
  * */
 char* strchr(const char* s, char c) {
   while (*s != '\0') {
-    if (*s == c) { return (char*) s; }
+    if (*s == c) {
+      return (char*) s;
+    }
     s++;
   }
   return NULL;
@@ -143,7 +155,9 @@ char* strchr(const char* s, char c) {
  * */
 char* strfind(const char* s, char c) {
   while (*s != '\0') {
-    if (*s == c) { break; }
+    if (*s == c) {
+      break;
+    }
     s++;
   }
   return (char*) s;
@@ -183,11 +197,13 @@ char* strfind(const char* s, char c) {
  * value.
  * */
 long strtol(const char* s, char** endptr, int base) {
-  int  neg = 0;
+  int neg = 0;
   long val = 0;
 
   // gobble initial whitespace
-  while (*s == ' ' || *s == '\t') { s++; }
+  while (*s == ' ' || *s == '\t') {
+    s++;
+  }
 
   // plus/minus sign
   if (*s == '+') {
@@ -218,12 +234,16 @@ long strtol(const char* s, char** endptr, int base) {
     } else {
       break;
     }
-    if (dig >= base) { break; }
+    if (dig >= base) {
+      break;
+    }
     s++, val = (val * base) + dig;
     // we don't properly detect overflow!
   }
 
-  if (endptr) { *endptr = (char*) s; }
+  if (endptr) {
+    *endptr = (char*) s;
+  }
   return (neg ? -val : val);
 }
 
@@ -241,7 +261,9 @@ void* memset(void* s, char c, size_t n) {
   return __memset(s, c, n);
 #else
   char* p = s;
-  while (n-- > 0) { *p++ = c; }
+  while (n-- > 0) {
+    *p++ = c;
+  }
   return s;
 #endif /* __HAVE_ARCH_MEMSET */
 }
@@ -260,12 +282,16 @@ void* memmove(void* dst, const void* src, size_t n) {
   return __memmove(dst, src, n);
 #else
   const char* s = src;
-  char*       d = dst;
+  char* d = dst;
   if (s < d && s + n > d) {
     s += n, d += n;
-    while (n-- > 0) { *--d = *--s; }
+    while (n-- > 0) {
+      *--d = *--s;
+    }
   } else {
-    while (n-- > 0) { *d++ = *s++; }
+    while (n-- > 0) {
+      *d++ = *s++;
+    }
   }
   return dst;
 #endif /* __HAVE_ARCH_MEMMOVE */
@@ -290,8 +316,10 @@ void* memcpy(void* dst, const void* src, size_t n) {
   return __memcpy(dst, src, n);
 #else
   const char* s = src;
-  char*       d = dst;
-  while (n-- > 0) { *d++ = *s++; }
+  char* d = dst;
+  while (n-- > 0) {
+    *d++ = *s++;
+  }
   return dst;
 #endif /* __HAVE_ARCH_MEMCPY */
 }

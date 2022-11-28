@@ -58,26 +58,13 @@ void idt_init(void) {
 }
 
 static const char* trapname(int trapno) {
-  static const char* const excnames[] = {"Divide error",
-                                         "Debug",
-                                         "Non-Maskable Interrupt",
-                                         "Breakpoint",
-                                         "Overflow",
-                                         "BOUND Range Exceeded",
-                                         "Invalid Opcode",
-                                         "Device Not Available",
-                                         "Double Fault",
-                                         "Coprocessor Segment Overrun",
-                                         "Invalid TSS",
-                                         "Segment Not Present",
-                                         "Stack Fault",
-                                         "General Protection",
-                                         "Page Fault",
-                                         "(unknown trap)",
-                                         "x87 FPU Floating-Point Error",
-                                         "Alignment Check",
-                                         "Machine-Check",
-                                         "SIMD Floating-Point Exception"};
+  static const char* const excnames[] = {"Divide error", "Debug",
+    "Non-Maskable Interrupt", "Breakpoint", "Overflow", "BOUND Range Exceeded",
+    "Invalid Opcode", "Device Not Available", "Double Fault",
+    "Coprocessor Segment Overrun", "Invalid TSS", "Segment Not Present",
+    "Stack Fault", "General Protection", "Page Fault", "(unknown trap)",
+    "x87 FPU Floating-Point Error", "Alignment Check", "Machine-Check",
+    "SIMD Floating-Point Exception"};
 
   if (trapno < sizeof(excnames) / sizeof(const char* const)) {
     return excnames[trapno];
@@ -94,8 +81,30 @@ bool trap_in_kernel(struct trapframe* tf) {
 }
 
 static const char* IA32flags[] = {
-  "CF", NULL, "PF", NULL, "AF", NULL, "ZF", "SF",  "TF",  "IF", "DF", "OF",
-  NULL, NULL, "NT", NULL, "RF", "VM", "AC", "VIF", "VIP", "ID", NULL, NULL,
+  "CF",
+  NULL,
+  "PF",
+  NULL,
+  "AF",
+  NULL,
+  "ZF",
+  "SF",
+  "TF",
+  "IF",
+  "DF",
+  "OF",
+  NULL,
+  NULL,
+  "NT",
+  NULL,
+  "RF",
+  "VM",
+  "AC",
+  "VIF",
+  "VIP",
+  "ID",
+  NULL,
+  NULL,
 };
 
 void print_trapframe(struct trapframe* tf) {
@@ -144,8 +153,8 @@ static inline void print_pgfault(struct trapframe* tf) {
    * bit 2 == 0 means kernel, 1 means user
    * */
   cprintf("page fault at 0x%08x: %c/%c [%s].\n", rcr2(),
-          (tf->tf_err & 4) ? 'U' : 'K', (tf->tf_err & 2) ? 'W' : 'R',
-          (tf->tf_err & 1) ? "protection fault" : "no page found");
+    (tf->tf_err & 4) ? 'U' : 'K', (tf->tf_err & 2) ? 'W' : 'R',
+    (tf->tf_err & 1) ? "protection fault" : "no page found");
 }
 
 static int pgfault_handler(struct trapframe* tf) {
@@ -157,7 +166,7 @@ static int pgfault_handler(struct trapframe* tf) {
   panic("unhandled page fault.\n");
 }
 
-static volatile int      in_swap_tick_event = 0;
+static volatile int in_swap_tick_event = 0;
 extern struct mm_struct* check_mm_struct;
 
 static void trap_dispatch(struct trapframe* tf) {
@@ -166,13 +175,13 @@ static void trap_dispatch(struct trapframe* tf) {
   int ret;
 
   switch (tf->tf_trapno) {
-    case T_PGFLT:  // page fault
+    case T_PGFLT :  // page fault
       if ((ret = pgfault_handler(tf)) != 0) {
         print_trapframe(tf);
         panic("handle pgfault failed. %e\n", ret);
       }
       break;
-    case IRQ_OFFSET + IRQ_TIMER:
+    case IRQ_OFFSET + IRQ_TIMER :
 #if 0
     LAB3 : If some page replacement algorithm(such as CLOCK PRA) need tick to change the priority of pages, 
     then you can add code here.
@@ -187,22 +196,22 @@ static void trap_dispatch(struct trapframe* tf) {
       ++ticks;
       if (ticks % TICK_NUM == 0) print_ticks();
       break;
-    case IRQ_OFFSET + IRQ_COM1:
+    case IRQ_OFFSET + IRQ_COM1 :
       c = cons_getc();
       cprintf("serial [%03d] %c\n", c, c);
       break;
-    case IRQ_OFFSET + IRQ_KBD:
+    case IRQ_OFFSET + IRQ_KBD :
       c = cons_getc();
       cprintf("kbd [%03d] %c\n", c, c);
       switch (c) {
-        case '0': goto L_SWITCH_TOK; break;
-        case '3': goto L_SWITCH_TOU; break;
-        case 'p': print_trapframe(tf); break;
-        default: break;
+        case '0' : goto L_SWITCH_TOK; break;
+        case '3' : goto L_SWITCH_TOU; break;
+        case 'p' : print_trapframe(tf); break;
+        default : break;
       }
       break;
     // LAB1 CHALLENGE 1 : 2013280 you should modify below codes.
-    case T_SWITCH_TOU:
+    case T_SWITCH_TOU :
 L_SWITCH_TOU:
       if (tf->tf_cs != USER_CS) {
         static struct trapframe switchk2u;
@@ -224,7 +233,7 @@ L_SWITCH_TOU:
         // 仅仅是完成了特权级的切换。这属于正常现象。
       }
       break;
-    case T_SWITCH_TOK:
+    case T_SWITCH_TOK :
 L_SWITCH_TOK:
       if (tf->tf_cs != KERNEL_CS) {
         tf->tf_cs = KERNEL_CS;  // 修改CPL DPL IOPL
@@ -240,11 +249,11 @@ L_SWITCH_TOK:
         *((uint32_t*) tf - 1) = switchu2k;
       }
       break;
-    case IRQ_OFFSET + IRQ_IDE1:
-    case IRQ_OFFSET + IRQ_IDE2:
+    case IRQ_OFFSET + IRQ_IDE1 :
+    case IRQ_OFFSET + IRQ_IDE2 :
       /* do nothing */
       break;
-    default:
+    default :
       // in kernel, it must be a mistake
       if ((tf->tf_cs & 3) == 0) {
         print_trapframe(tf);

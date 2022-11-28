@@ -5,7 +5,7 @@
 #define RAND_MAX 2147483647UL
 
 /* libs/rand.c */
-int  rand(void);
+int rand(void);
 void srand(unsigned int seed);
 
 #endif /* !__LIBS_RAND_H__ */

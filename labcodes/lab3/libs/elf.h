@@ -8,7 +8,7 @@
 /* file header */
 struct elfhdr {
   uint32_t e_magic;  // must equal ELF_MAGIC
-  uint8_t  e_elf[12];
+  uint8_t e_elf[12];
   uint16_t
     e_type;  // 1=relocatable, 2=executable, 3=shared object, 4=core image
   uint16_t e_machine;    // 3=x86, 4=68K, etc.
