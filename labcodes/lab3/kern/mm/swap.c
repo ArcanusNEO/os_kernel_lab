@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <swap.h>
-#include <swap_fifo.h>
+#include <swap_clock.h>
 #include <swapfs.h>
 
 // the valid vaddr for check is between 0~CHECK_VALID_VADDR-1
@@ -34,7 +34,7 @@ int swap_init(void) {
     panic("bad max_swap_offset %08x.\n", max_swap_offset);
   }
 
-  sm = &swap_manager_fifo;
+  sm = &swap_manager_clock;
   int r = sm->init();
 
   if (r == 0) {
