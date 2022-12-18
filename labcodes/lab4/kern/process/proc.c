@@ -124,8 +124,8 @@ char* get_proc_name(struct proc_struct* proc) {
 static int get_pid(void) {
   static_assert(MAX_PID > MAX_PROCESS);
   struct proc_struct* proc;
-  list_entry_t *      list      = &proc_list, *le;
-  static int          next_safe = MAX_PID, last_pid = MAX_PID;
+  list_entry_t *list = &proc_list, *le;
+  static int next_safe = MAX_PID, last_pid = MAX_PID;
   if (++last_pid >= MAX_PID) {
     last_pid = 1;
     goto inside;
@@ -139,7 +139,9 @@ repeat:
       proc = le2proc(le, list_link);
       if (proc->pid == last_pid) {
         if (++last_pid >= next_safe) {
-          if (last_pid >= MAX_PID) { last_pid = 1; }
+          if (last_pid >= MAX_PID) {
+            last_pid = 1;
+          }
           next_safe = MAX_PID;
           goto repeat;
         }
@@ -155,7 +157,7 @@ repeat:
 // NOTE: before call switch_to, should load  base addr of "proc"'s new PDT
 void proc_run(struct proc_struct* proc) {
   if (proc != current) {
-    bool                intr_flag;
+    bool intr_flag;
     struct proc_struct *prev = current, *next = proc;
     local_intr_save(intr_flag);
     {
@@ -186,7 +188,9 @@ struct proc_struct* find_proc(int pid) {
     list_entry_t *list = hash_list + pid_hashfn(pid), *le = list;
     while ((le = list_next(le)) != list) {
       struct proc_struct* proc = le2proc(le, hash_link);
-      if (proc->pid == pid) { return proc; }
+      if (proc->pid == pid) {
+        return proc;
+      }
     }
   }
   return NULL;
@@ -200,9 +204,9 @@ int kernel_thread(int (*fn)(void*), void* arg, uint32_t clone_flags) {
   memset(&tf, 0, sizeof(struct trapframe));
   tf.tf_cs = KERNEL_CS;
   tf.tf_ds = tf.tf_es = tf.tf_ss = KERNEL_DS;
-  tf.tf_regs.reg_ebx             = (uint32_t) fn;
-  tf.tf_regs.reg_edx             = (uint32_t) arg;
-  tf.tf_eip                      = (uint32_t) kernel_thread_entry;
+  tf.tf_regs.reg_ebx = (uint32_t) fn;
+  tf.tf_regs.reg_edx = (uint32_t) arg;
+  tf.tf_eip = (uint32_t) kernel_thread_entry;
   return do_fork(clone_flags | CLONE_VM, 0, &tf);
 }
 
@@ -232,12 +236,12 @@ static int copy_mm(uint32_t clone_flags, struct proc_struct* proc) {
 
 // copy_thread - setup the trapframe on the  process's kernel stack top and
 //             - setup the kernel entry point and stack of process
-static void copy_thread(struct proc_struct* proc, uintptr_t esp,
-                        struct trapframe* tf) {
-  proc->tf    = (struct trapframe*) (proc->kstack + KSTACKSIZE) - 1;
+static void copy_thread(
+  struct proc_struct* proc, uintptr_t esp, struct trapframe* tf) {
+  proc->tf = (struct trapframe*) (proc->kstack + KSTACKSIZE) - 1;
   *(proc->tf) = *tf;
   proc->tf->tf_regs.reg_eax = 0;
-  proc->tf->tf_esp          = esp;
+  proc->tf->tf_esp = esp;
   proc->tf->tf_eflags |= FL_IF;
 
   proc->context.eip = (uintptr_t) forkret;
@@ -252,9 +256,11 @@ static void copy_thread(struct proc_struct* proc, uintptr_t esp,
  * proc->tf
  */
 int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe* tf) {
-  int                 ret = -E_NO_FREE_PROC;
+  int ret = -E_NO_FREE_PROC;
   struct proc_struct* proc;
-  if (nr_process >= MAX_PROCESS) { goto fork_out; }
+  if (nr_process >= MAX_PROCESS) {
+    goto fork_out;
+  }
   ret = -E_NO_MEM;
   // LAB4:EXERCISE2 YOUR CODE
   /*
@@ -302,7 +308,7 @@ int do_exit(int error_code) {
 // init_main - the second kernel thread used to create user_main kernel threads
 static int init_main(void* arg) {
   cprintf("this initproc, pid = %d, name = \"%s\"\n", current->pid,
-          get_proc_name(current));
+    get_proc_name(current));
   cprintf("To U: \"%s\".\n", (const char*) arg);
   cprintf("To U: \"en.., Bye, Bye. :)\"\n");
   return 0;
@@ -314,13 +320,17 @@ void proc_init(void) {
   int i;
 
   list_init(&proc_list);
-  for (i = 0; i < HASH_LIST_SIZE; i++) { list_init(hash_list + i); }
+  for (i = 0; i < HASH_LIST_SIZE; i++) {
+    list_init(hash_list + i);
+  }
 
-  if ((idleproc = alloc_proc()) == NULL) { panic("cannot alloc idleproc.\n"); }
+  if ((idleproc = alloc_proc()) == NULL) {
+    panic("cannot alloc idleproc.\n");
+  }
 
-  idleproc->pid          = 0;
-  idleproc->state        = PROC_RUNNABLE;
-  idleproc->kstack       = (uintptr_t) bootstack;
+  idleproc->pid = 0;
+  idleproc->state = PROC_RUNNABLE;
+  idleproc->kstack = (uintptr_t) bootstack;
   idleproc->need_resched = 1;
   set_proc_name(idleproc, "idle");
   nr_process++;
@@ -328,7 +338,9 @@ void proc_init(void) {
   current = idleproc;
 
   int pid = kernel_thread(init_main, "Hello world!!", 0);
-  if (pid <= 0) { panic("create init_main failed.\n"); }
+  if (pid <= 0) {
+    panic("create init_main failed.\n");
+  }
 
   initproc = find_proc(pid);
   set_proc_name(initproc, "init");
@@ -341,6 +353,8 @@ void proc_init(void) {
 // below works
 void cpu_idle(void) {
   while (1) {
-    if (current->need_resched) { schedule(); }
+    if (current->need_resched) {
+      schedule();
+    }
   }
 }

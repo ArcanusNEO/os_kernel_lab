@@ -43,19 +43,19 @@
 #define spin_unlock_irqrestore(l, f) local_intr_restore(f)
 typedef unsigned int gfp_t;
 #ifndef PAGE_SIZE
-#  define PAGE_SIZE PGSIZE
+  #define PAGE_SIZE PGSIZE
 #endif
 
 #ifndef L1_CACHE_BYTES
-#  define L1_CACHE_BYTES 64
+  #define L1_CACHE_BYTES 64
 #endif
 
 #ifndef ALIGN
-#  define ALIGN(addr, size) (((addr) + (size) -1) & (~((size) -1)))
+  #define ALIGN(addr, size) (((addr) + (size) -1) & (~((size) -1)))
 #endif
 
 struct slob_block {
-  int                units;
+  int units;
   struct slob_block* next;
 };
 typedef struct slob_block slob_t;
@@ -65,14 +65,14 @@ typedef struct slob_block slob_t;
 #define SLOB_ALIGN       L1_CACHE_BYTES
 
 struct bigblock {
-  int              order;
-  void*            pages;
+  int order;
+  void* pages;
   struct bigblock* next;
 };
 typedef struct bigblock bigblock_t;
 
-static slob_t      arena    = {.next = &arena, .units = 1};
-static slob_t*     slobfree = &arena;
+static slob_t arena = {.next = &arena, .units = 1};
+static slob_t* slobfree = &arena;
 static bigblock_t* bigblocks;
 
 static void* __slob_get_free_pages(gfp_t gfp, int order) {
@@ -92,8 +92,8 @@ static void slob_free(void* b, int size);
 static void* slob_alloc(size_t size, gfp_t gfp, int align) {
   assert((size + SLOB_UNIT) < PAGE_SIZE);
 
-  slob_t *      prev, *cur, *aligned = 0;
-  int           delta = 0, units = SLOB_UNITS(size);
+  slob_t *prev, *cur, *aligned = 0;
+  int delta = 0, units = SLOB_UNITS(size);
   unsigned long flags;
 
   spin_lock_irqsave(&slob_lock, flags);
@@ -101,24 +101,24 @@ static void* slob_alloc(size_t size, gfp_t gfp, int align) {
   for (cur = prev->next;; prev = cur, cur = cur->next) {
     if (align) {
       aligned = (slob_t*) ALIGN((unsigned long) cur, align);
-      delta   = aligned - cur;
+      delta = aligned - cur;
     }
     if (cur->units >= units + delta) { /* room enough? */
       if (delta) {                     /* need to fragment head to align? */
         aligned->units = cur->units - delta;
-        aligned->next  = cur->next;
-        cur->next      = aligned;
-        cur->units     = delta;
-        prev           = cur;
-        cur            = aligned;
+        aligned->next = cur->next;
+        cur->next = aligned;
+        cur->units = delta;
+        prev = cur;
+        cur = aligned;
       }
 
       if (cur->units == units)  /* exact fit? */
         prev->next = cur->next; /* unlink */
       else { /* fragment */ prev->next = cur + units;
-        prev->next->units              = cur->units - units;
-        prev->next->next               = cur->next;
-        cur->units                     = units;
+        prev->next->units = cur->units - units;
+        prev->next->next = cur->next;
+        cur->units = units;
       }
 
       slobfree = prev;
@@ -142,7 +142,7 @@ static void* slob_alloc(size_t size, gfp_t gfp, int align) {
 }
 
 static void slob_free(void* block, int size) {
-  slob_t *      cur, *b = (slob_t*) block;
+  slob_t *cur, *b = (slob_t*) block;
   unsigned long flags;
 
   if (!block) return;
@@ -193,8 +193,8 @@ static int find_order(int size) {
 }
 
 static void* __kmalloc(size_t size, gfp_t gfp) {
-  slob_t*       m;
-  bigblock_t*   bb;
+  slob_t* m;
+  bigblock_t* bb;
   unsigned long flags;
 
   if (size < PAGE_SIZE - SLOB_UNIT) {
@@ -210,7 +210,7 @@ static void* __kmalloc(size_t size, gfp_t gfp) {
 
   if (bb->pages) {
     spin_lock_irqsave(&block_lock, flags);
-    bb->next  = bigblocks;
+    bb->next = bigblocks;
     bigblocks = bb;
     spin_unlock_irqrestore(&block_lock, flags);
     return bb->pages;
@@ -225,7 +225,7 @@ void* kmalloc(size_t size) {
 }
 
 void kfree(void* block) {
-  bigblock_t *  bb, **last = &bigblocks;
+  bigblock_t *bb, **last = &bigblocks;
   unsigned long flags;
 
   if (!block) return;
@@ -250,7 +250,7 @@ void kfree(void* block) {
 }
 
 unsigned int ksize(const void* block) {
-  bigblock_t*   bb;
+  bigblock_t* bb;
   unsigned long flags;
 
   if (!block) return 0;

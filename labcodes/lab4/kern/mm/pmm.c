@@ -41,7 +41,7 @@ size_t npage = 0;
 
 // virtual address of boot-time page directory
 extern pde_t __boot_pgdir;
-pde_t*       boot_pgdir = &__boot_pgdir;
+pde_t* boot_pgdir = &__boot_pgdir;
 // physical address of boot-time page directory
 uintptr_t boot_cr3;
 
@@ -83,7 +83,7 @@ static struct segdesc gdt[] = {
   [SEG_KDATA] = SEG(STA_W, 0x0, 0xFFFFFFFF, DPL_KERNEL),
   [SEG_UTEXT] = SEG(STA_X | STA_R, 0x0, 0xFFFFFFFF, DPL_USER),
   [SEG_UDATA] = SEG(STA_W, 0x0, 0xFFFFFFFF, DPL_USER),
-  [SEG_TSS]   = SEG_NULL,
+  [SEG_TSS] = SEG_NULL,
 };
 
 static struct pseudodesc gdt_pd = {sizeof(gdt) - 1, (uintptr_t) gdt};
@@ -148,7 +148,7 @@ static void init_memmap(struct Page* base, size_t n) {
 // memory
 struct Page* alloc_pages(size_t n) {
   struct Page* page = NULL;
-  bool         intr_flag;
+  bool intr_flag;
 
   while (1) {
     local_intr_save(intr_flag);
@@ -177,7 +177,7 @@ void free_pages(struct Page* base, size_t n) {
 // of current free memory
 size_t nr_free_pages(void) {
   size_t ret;
-  bool   intr_flag;
+  bool intr_flag;
   local_intr_save(intr_flag);
   { ret = pmm_manager->nr_free_pages(); }
   local_intr_restore(intr_flag);
@@ -187,37 +187,47 @@ size_t nr_free_pages(void) {
 /* pmm_init - initialize the physical memory management */
 static void page_init(void) {
   struct e820map* memmap = (struct e820map*) (0x8000 + KERNBASE);
-  uint64_t        maxpa  = 0;
+  uint64_t maxpa = 0;
 
   cprintf("e820map:\n");
   int i;
   for (i = 0; i < memmap->nr_map; i++) {
     uint64_t begin = memmap->map[i].addr, end = begin + memmap->map[i].size;
     cprintf("  memory: %08llx, [%08llx, %08llx], type = %d.\n",
-            memmap->map[i].size, begin, end - 1, memmap->map[i].type);
+      memmap->map[i].size, begin, end - 1, memmap->map[i].type);
     if (memmap->map[i].type == E820_ARM) {
-      if (maxpa < end && begin < KMEMSIZE) { maxpa = end; }
+      if (maxpa < end && begin < KMEMSIZE) {
+        maxpa = end;
+      }
     }
   }
-  if (maxpa > KMEMSIZE) { maxpa = KMEMSIZE; }
+  if (maxpa > KMEMSIZE) {
+    maxpa = KMEMSIZE;
+  }
 
   extern char end[];
 
   npage = maxpa / PGSIZE;
   pages = (struct Page*) ROUNDUP((void*) end, PGSIZE);
 
-  for (i = 0; i < npage; i++) { SetPageReserved(pages + i); }
+  for (i = 0; i < npage; i++) {
+    SetPageReserved(pages + i);
+  }
 
   uintptr_t freemem = PADDR((uintptr_t) pages + sizeof(struct Page) * npage);
 
   for (i = 0; i < memmap->nr_map; i++) {
     uint64_t begin = memmap->map[i].addr, end = begin + memmap->map[i].size;
     if (memmap->map[i].type == E820_ARM) {
-      if (begin < freemem) { begin = freemem; }
-      if (end > KMEMSIZE) { end = KMEMSIZE; }
+      if (begin < freemem) {
+        begin = freemem;
+      }
+      if (end > KMEMSIZE) {
+        end = KMEMSIZE;
+      }
       if (begin < end) {
         begin = ROUNDUP(begin, PGSIZE);
-        end   = ROUNDDOWN(end, PGSIZE);
+        end = ROUNDDOWN(end, PGSIZE);
         if (begin < end) {
           init_memmap(pa2page(begin), (end - begin) / PGSIZE);
         }
@@ -232,12 +242,12 @@ static void page_init(void) {
 //   size: memory size
 //   pa:   physical address of this memory
 //   perm: permission of this memory
-static void boot_map_segment(pde_t* pgdir, uintptr_t la, size_t size,
-                             uintptr_t pa, uint32_t perm) {
+static void boot_map_segment(
+  pde_t* pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t perm) {
   assert(PGOFF(la) == PGOFF(pa));
   size_t n = ROUNDUP(size + PGOFF(la), PGSIZE) / PGSIZE;
-  la       = ROUNDDOWN(la, PGSIZE);
-  pa       = ROUNDDOWN(pa, PGSIZE);
+  la = ROUNDDOWN(la, PGSIZE);
+  pa = ROUNDDOWN(pa, PGSIZE);
   for (; n > 0; n--, la += PGSIZE, pa += PGSIZE) {
     pte_t* ptep = get_pte(pgdir, la, 1);
     assert(ptep != NULL);
@@ -251,7 +261,9 @@ static void boot_map_segment(pde_t* pgdir, uintptr_t la, size_t size,
 // Table)&PT(Page Table)
 static void* boot_alloc_page(void) {
   struct Page* p = alloc_page();
-  if (p == NULL) { panic("boot_alloc_page failed.\n"); }
+  if (p == NULL) {
+    panic("boot_alloc_page failed.\n");
+  }
   return page2kva(p);
 }
 
@@ -349,8 +361,12 @@ pte_t* get_pte(pde_t* pgdir, uintptr_t la, bool create) {
 // get_page - get related Page struct for linear address la using PDT pgdir
 struct Page* get_page(pde_t* pgdir, uintptr_t la, pte_t** ptep_store) {
   pte_t* ptep = get_pte(pgdir, la, 0);
-  if (ptep_store != NULL) { *ptep_store = ptep; }
-  if (ptep != NULL && *ptep & PTE_P) { return pte2page(*ptep); }
+  if (ptep_store != NULL) {
+    *ptep_store = ptep;
+  }
+  if (ptep != NULL && *ptep & PTE_P) {
+    return pte2page(*ptep);
+  }
   return NULL;
 }
 
@@ -391,7 +407,9 @@ static inline void page_remove_pte(pde_t* pgdir, uintptr_t la, pte_t* ptep) {
 // validated pte
 void page_remove(pde_t* pgdir, uintptr_t la) {
   pte_t* ptep = get_pte(pgdir, la, 0);
-  if (ptep != NULL) { page_remove_pte(pgdir, la, ptep); }
+  if (ptep != NULL) {
+    page_remove_pte(pgdir, la, ptep);
+  }
 }
 
 // page_insert - build the map of phy addr of an Page with the linear addr la
@@ -404,7 +422,9 @@ void page_remove(pde_t* pgdir, uintptr_t la) {
 // note: PT is changed, so the TLB need to be invalidate
 int page_insert(pde_t* pgdir, struct Page* page, uintptr_t la, uint32_t perm) {
   pte_t* ptep = get_pte(pgdir, la, 1);
-  if (ptep == NULL) { return -E_NO_MEM; }
+  if (ptep == NULL) {
+    return -E_NO_MEM;
+  }
   page_ref_inc(page);
   if (*ptep & PTE_P) {
     struct Page* p = pte2page(*ptep);
@@ -422,7 +442,9 @@ int page_insert(pde_t* pgdir, struct Page* page, uintptr_t la, uint32_t perm) {
 // invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
 void tlb_invalidate(pde_t* pgdir, uintptr_t la) {
-  if (rcr3() == PADDR(pgdir)) { invlpg((void*) la); }
+  if (rcr3() == PADDR(pgdir)) {
+    invlpg((void*) la);
+  }
 }
 
 // pgdir_alloc_page - call alloc_page & page_insert functions to
@@ -502,7 +524,7 @@ static void check_pgdir(void) {
 
 static void check_boot_pgdir(void) {
   pte_t* ptep;
-  int    i;
+  int i;
   for (i = 0; i < npage; i += PGSIZE) {
     assert((ptep = get_pte(boot_pgdir, (uintptr_t) KADDR(i), 0)) != NULL);
     assert(PTE_ADDR(*ptep) == i);
@@ -557,15 +579,24 @@ static const char* perm2str(int perm) {
 //  return value: 0 - not a invalid item range, perm - a valid item range with
 //  perm permission
 static int get_pgtable_items(size_t left, size_t right, size_t start,
-                             uintptr_t* table, size_t* left_store,
-                             size_t* right_store) {
-  if (start >= right) { return 0; }
-  while (start < right && !(table[start] & PTE_P)) { start++; }
+  uintptr_t* table, size_t* left_store, size_t* right_store) {
+  if (start >= right) {
+    return 0;
+  }
+  while (start < right && !(table[start] & PTE_P)) {
+    start++;
+  }
   if (start < right) {
-    if (left_store != NULL) { *left_store = start; }
+    if (left_store != NULL) {
+      *left_store = start;
+    }
     int perm = (table[start++] & PTE_USER);
-    while (start < right && (table[start] & PTE_USER) == perm) { start++; }
-    if (right_store != NULL) { *right_store = start; }
+    while (start < right && (table[start] & PTE_USER) == perm) {
+      start++;
+    }
+    if (right_store != NULL) {
+      *right_store = start;
+    }
     return perm;
   }
   return 0;
@@ -575,16 +606,15 @@ static int get_pgtable_items(size_t left, size_t right, size_t start,
 void print_pgdir(void) {
   cprintf("-------------------- BEGIN --------------------\n");
   size_t left, right = 0, perm;
-  while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left, &right))
-         != 0) {
+  while (
+    (perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left, &right)) != 0) {
     cprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
-            right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
+      right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
     size_t l, r = left * NPTEENTRY;
-    while ((perm = get_pgtable_items(left * NPTEENTRY, right * NPTEENTRY, r,
-                                     vpt, &l, &r))
-           != 0) {
+    while ((perm = get_pgtable_items(
+              left * NPTEENTRY, right * NPTEENTRY, r, vpt, &l, &r)) != 0) {
       cprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", r - l, l * PGSIZE,
-              r * PGSIZE, (r - l) * PGSIZE, perm2str(perm));
+        r * PGSIZE, (r - l) * PGSIZE, perm2str(perm));
     }
   }
   cprintf("--------------------- END ---------------------\n");

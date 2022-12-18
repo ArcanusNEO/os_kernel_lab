@@ -47,8 +47,8 @@ struct mm_struct* mm_create(void) {
   if (mm != NULL) {
     list_init(&(mm->mmap_list));
     mm->mmap_cache = NULL;
-    mm->pgdir      = NULL;
-    mm->map_count  = 0;
+    mm->pgdir = NULL;
+    mm->map_count = 0;
 
     if (swap_init_ok) swap_init_mm(mm);
     else mm->sm_priv = NULL;
@@ -58,13 +58,13 @@ struct mm_struct* mm_create(void) {
 
 // vma_create - alloc a vma_struct & initialize it. (addr range:
 // vm_start~vm_end)
-struct vma_struct* vma_create(uintptr_t vm_start, uintptr_t vm_end,
-                              uint32_t vm_flags) {
+struct vma_struct* vma_create(
+  uintptr_t vm_start, uintptr_t vm_end, uint32_t vm_flags) {
   struct vma_struct* vma = kmalloc(sizeof(struct vma_struct));
 
   if (vma != NULL) {
     vma->vm_start = vm_start;
-    vma->vm_end   = vm_end;
+    vma->vm_end = vm_end;
     vma->vm_flags = vm_flags;
   }
   return vma;
@@ -76,7 +76,7 @@ struct vma_struct* find_vma(struct mm_struct* mm, uintptr_t addr) {
   if (mm != NULL) {
     vma = mm->mmap_cache;
     if (!(vma != NULL && vma->vm_start <= addr && vma->vm_end > addr)) {
-      bool          found = 0;
+      bool found = 0;
       list_entry_t *list = &(mm->mmap_list), *le = list;
       while ((le = list_next(le)) != list) {
         vma = le2vma(le, list_link);
@@ -85,16 +85,20 @@ struct vma_struct* find_vma(struct mm_struct* mm, uintptr_t addr) {
           break;
         }
       }
-      if (!found) { vma = NULL; }
+      if (!found) {
+        vma = NULL;
+      }
     }
-    if (vma != NULL) { mm->mmap_cache = vma; }
+    if (vma != NULL) {
+      mm->mmap_cache = vma;
+    }
   }
   return vma;
 }
 
 // check_vma_overlap - check if vma1 overlaps vma2 ?
-static inline void check_vma_overlap(struct vma_struct* prev,
-                                     struct vma_struct* next) {
+static inline void check_vma_overlap(
+  struct vma_struct* prev, struct vma_struct* next) {
   assert(prev->vm_start < prev->vm_end);
   assert(prev->vm_end <= next->vm_start);
   assert(next->vm_start < next->vm_end);
@@ -103,21 +107,27 @@ static inline void check_vma_overlap(struct vma_struct* prev,
 // insert_vma_struct -insert vma in mm's list link
 void insert_vma_struct(struct mm_struct* mm, struct vma_struct* vma) {
   assert(vma->vm_start < vma->vm_end);
-  list_entry_t* list    = &(mm->mmap_list);
+  list_entry_t* list = &(mm->mmap_list);
   list_entry_t *le_prev = list, *le_next;
 
   list_entry_t* le = list;
   while ((le = list_next(le)) != list) {
     struct vma_struct* mmap_prev = le2vma(le, list_link);
-    if (mmap_prev->vm_start > vma->vm_start) { break; }
+    if (mmap_prev->vm_start > vma->vm_start) {
+      break;
+    }
     le_prev = le;
   }
 
   le_next = list_next(le_prev);
 
   /* check overlap */
-  if (le_prev != list) { check_vma_overlap(le2vma(le_prev, list_link), vma); }
-  if (le_next != list) { check_vma_overlap(vma, le2vma(le_next, list_link)); }
+  if (le_prev != list) {
+    check_vma_overlap(le2vma(le_prev, list_link), vma);
+  }
+  if (le_next != list) {
+    check_vma_overlap(vma, le2vma(le_next, list_link));
+  }
 
   vma->vm_mm = mm;
   list_add_after(le_prev, &(vma->list_link));
@@ -202,7 +212,7 @@ static void check_vma_struct(void) {
     struct vma_struct* vma_below_5 = find_vma(mm, i);
     if (vma_below_5 != NULL) {
       cprintf("vma_below_5: i %x, start %x, end %x\n", i, vma_below_5->vm_start,
-              vma_below_5->vm_end);
+        vma_below_5->vm_end);
     }
     assert(vma_below_5 == NULL);
   }
@@ -221,8 +231,8 @@ static void check_pgfault(void) {
   check_mm_struct = mm_create();
   assert(check_mm_struct != NULL);
 
-  struct mm_struct* mm    = check_mm_struct;
-  pde_t*            pgdir = mm->pgdir = boot_pgdir;
+  struct mm_struct* mm = check_mm_struct;
+  pde_t* pgdir = mm->pgdir = boot_pgdir;
   assert(pgdir[0] == 0);
 
   struct vma_struct* vma = vma_create(0, PTSIZE, VM_WRITE);
@@ -238,7 +248,9 @@ static void check_pgfault(void) {
     *(char*) (addr + i) = i;
     sum += i;
   }
-  for (i = 0; i < 100; i++) { sum -= *(char*) (addr + i); }
+  for (i = 0; i < 100; i++) {
+    sum -= *(char*) (addr + i);
+  }
   assert(sum == 0);
 
   page_remove(pgdir, ROUNDDOWN(addr, PGSIZE));
@@ -253,6 +265,7 @@ static void check_pgfault(void) {
 
   cprintf("check_pgfault() succeeded!\n");
 }
+
 // page fault number
 volatile unsigned int pgfault_num = 0;
 
@@ -293,22 +306,24 @@ int do_pgfault(struct mm_struct* mm, uint32_t error_code, uintptr_t addr) {
   }
   // check the error_code
   switch (error_code & 3) {
-    default:
+    default :
       /* error code flag : default is 3 ( W/R=1, P=1): write, present */
-    case 2: /* error code flag : (W/R=1, P=0): write, not present */
+    case 2 : /* error code flag : (W/R=1, P=0): write, not present */
       if (!(vma->vm_flags & VM_WRITE)) {
-        cprintf("do_pgfault failed: error code flag = write AND not present, "
-                "but the addr's vma cannot write\n");
+        cprintf(
+          "do_pgfault failed: error code flag = write AND not present, "
+          "but the addr's vma cannot write\n");
         goto failed;
       }
       break;
-    case 1: /* error code flag : (W/R=0, P=1): read, present */
+    case 1 : /* error code flag : (W/R=0, P=1): read, present */
       cprintf("do_pgfault failed: error code flag = read AND present\n");
       goto failed;
-    case 0: /* error code flag : (W/R=0, P=0): read, not present */
+    case 0 : /* error code flag : (W/R=0, P=0): read, not present */
       if (!(vma->vm_flags & (VM_READ | VM_EXEC))) {
-        cprintf("do_pgfault failed: error code flag = read AND not present, "
-                "but the addr's vma cannot read or exec\n");
+        cprintf(
+          "do_pgfault failed: error code flag = read AND not present, "
+          "but the addr's vma cannot read or exec\n");
         goto failed;
       }
   }
@@ -319,7 +334,9 @@ int do_pgfault(struct mm_struct* mm, uint32_t error_code, uintptr_t addr) {
    *    continue process
    */
   uint32_t perm = PTE_U;
-  if (vma->vm_flags & VM_WRITE) { perm |= PTE_W; }
+  if (vma->vm_flags & VM_WRITE) {
+    perm |= PTE_W;
+  }
   addr = ROUNDDOWN(addr, PGSIZE);
 
   ret = -E_NO_MEM;

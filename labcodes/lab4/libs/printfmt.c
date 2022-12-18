@@ -36,10 +36,9 @@ static const char* const error_string[MAXERROR + 1] = {
  * than @width
  * */
 static void printnum(void (*putch)(int, void*), void* putdat,
-                     unsigned long long num, unsigned base, int width,
-                     int padc) {
+  unsigned long long num, unsigned base, int width, int padc) {
   unsigned long long result = num;
-  unsigned           mod    = do_div(result, base);
+  unsigned mod = do_div(result, base);
 
   // first recursively print all preceding (more significant) digits
   if (num >= base) {
@@ -108,16 +107,18 @@ void printfmt(void (*putch)(int, void*), void* putdat, const char* fmt, ...) {
  * Call this function if you are already dealing with a va_list.
  * Or you probably want printfmt() instead.
  * */
-void vprintfmt(void (*putch)(int, void*), void* putdat, const char* fmt,
-               va_list ap) {
+void vprintfmt(
+  void (*putch)(int, void*), void* putdat, const char* fmt, va_list ap) {
   register const char* p;
-  register int         ch, err;
-  unsigned long long   num;
-  int                  base, width, precision, lflag, altflag;
+  register int ch, err;
+  unsigned long long num;
+  int base, width, precision, lflag, altflag;
 
   while (1) {
     while ((ch = *(unsigned char*) fmt++) != '%') {
-      if (ch == '\0') { return; }
+      if (ch == '\0') {
+        return;
+      }
       putch(ch, putdat);
     }
 
@@ -129,27 +130,29 @@ void vprintfmt(void (*putch)(int, void*), void* putdat, const char* fmt,
 reswitch:
     switch (ch = *(unsigned char*) fmt++) {
       // flag to pad on the right
-      case '-': padc = '-'; goto reswitch;
+      case '-' : padc = '-'; goto reswitch;
 
       // flag to pad with 0's instead of spaces
-      case '0': padc = '0'; goto reswitch;
+      case '0' : padc = '0'; goto reswitch;
 
       // width field
-      case '1' ... '9':
+      case '1' ... '9' :
         for (precision = 0;; ++fmt) {
           precision = precision * 10 + ch - '0';
-          ch        = *fmt;
-          if (ch < '0' || ch > '9') { break; }
+          ch = *fmt;
+          if (ch < '0' || ch > '9') {
+            break;
+          }
         }
         goto process_precision;
 
-      case '*': precision = va_arg(ap, int); goto process_precision;
+      case '*' : precision = va_arg(ap, int); goto process_precision;
 
-      case '.':
+      case '.' :
         if (width < 0) width = 0;
         goto reswitch;
 
-      case '#':
+      case '#' :
         altflag = 1;
         goto reswitch;
 
@@ -158,15 +161,17 @@ process_precision:
         goto reswitch;
 
       // long flag (doubled for long long)
-      case 'l': lflag++; goto reswitch;
+      case 'l' : lflag++; goto reswitch;
 
       // character
-      case 'c': putch(va_arg(ap, int), putdat); break;
+      case 'c' : putch(va_arg(ap, int), putdat); break;
 
       // error message
-      case 'e':
+      case 'e' :
         err = va_arg(ap, int);
-        if (err < 0) { err = -err; }
+        if (err < 0) {
+          err = -err;
+        }
         if (err > MAXERROR || (p = error_string[err]) == NULL) {
           printfmt(putch, putdat, "error %d", err);
         } else {
@@ -175,8 +180,10 @@ process_precision:
         break;
 
       // string
-      case 's':
-        if ((p = va_arg(ap, char*)) == NULL) { p = "(null)"; }
+      case 's' :
+        if ((p = va_arg(ap, char*)) == NULL) {
+          p = "(null)";
+        }
         if (width > 0 && padc != '-') {
           for (width -= strnlen(p, precision); width > 0; width--) {
             putch(padc, putdat);
@@ -190,11 +197,13 @@ process_precision:
             putch(ch, putdat);
           }
         }
-        for (; width > 0; width--) { putch(' ', putdat); }
+        for (; width > 0; width--) {
+          putch(' ', putdat);
+        }
         break;
 
       // (signed) decimal
-      case 'd':
+      case 'd' :
         num = getint(&ap, lflag);
         if ((long long) num < 0) {
           putch('-', putdat);
@@ -204,38 +213,38 @@ process_precision:
         goto number;
 
       // unsigned decimal
-      case 'u':
-        num  = getuint(&ap, lflag);
+      case 'u' :
+        num = getuint(&ap, lflag);
         base = 10;
         goto number;
 
       // (unsigned) octal
-      case 'o':
-        num  = getuint(&ap, lflag);
+      case 'o' :
+        num = getuint(&ap, lflag);
         base = 8;
         goto number;
 
       // pointer
-      case 'p':
+      case 'p' :
         putch('0', putdat);
         putch('x', putdat);
-        num  = (unsigned long long) (uintptr_t) va_arg(ap, void*);
+        num = (unsigned long long) (uintptr_t) va_arg(ap, void*);
         base = 16;
         goto number;
 
       // (unsigned) hexadecimal
-      case 'x':
-        num  = getuint(&ap, lflag);
+      case 'x' :
+        num = getuint(&ap, lflag);
         base = 16;
 number:
         printnum(putch, putdat, num, base, width, padc);
         break;
 
       // escaped '%' character
-      case '%': putch(ch, putdat); break;
+      case '%' : putch(ch, putdat); break;
 
       // unrecognized escape sequence - just print it literally
-      default:
+      default :
         putch('%', putdat);
         for (fmt--; fmt[-1] != '%'; fmt--) /* do nothing */
           ;
@@ -248,7 +257,7 @@ number:
 struct sprintbuf {
   char* buf;   // address pointer points to the first unused memory
   char* ebuf;  // points the end of the buffer
-  int   cnt;   // the number of characters that have been placed in this buffer
+  int cnt;     // the number of characters that have been placed in this buffer
 };
 
 /* *
@@ -258,7 +267,9 @@ struct sprintbuf {
  * */
 static void sprintputch(int ch, struct sprintbuf* b) {
   b->cnt++;
-  if (b->buf < b->ebuf) { *b->buf++ = ch; }
+  if (b->buf < b->ebuf) {
+    *b->buf++ = ch;
+  }
 }
 
 /* *
@@ -269,7 +280,7 @@ static void sprintputch(int ch, struct sprintbuf* b) {
  * */
 int snprintf(char* str, size_t size, const char* fmt, ...) {
   va_list ap;
-  int     cnt;
+  int cnt;
   va_start(ap, fmt);
   cnt = vsnprintf(str, size, fmt, ap);
   va_end(ap);
@@ -292,7 +303,9 @@ int snprintf(char* str, size_t size, const char* fmt, ...) {
  * */
 int vsnprintf(char* str, size_t size, const char* fmt, va_list ap) {
   struct sprintbuf b = {str, str + size - 1, 0};
-  if (str == NULL || b.buf > b.ebuf) { return -E_INVAL; }
+  if (str == NULL || b.buf > b.ebuf) {
+    return -E_INVAL;
+  }
   // print the string to the buffer
   vprintfmt((void*) sprintputch, &b, fmt, ap);
   // null terminate the buffer

@@ -60,8 +60,8 @@ static const struct {
 
 static struct ide_device {
   unsigned char valid;      // 0 or 1 (If Device Really Exists)
-  unsigned int  sets;       // Commend Sets Supported
-  unsigned int  size;       // Size in Sectors
+  unsigned int sets;        // Commend Sets Supported
+  unsigned int size;        // Size in Sectors
   unsigned char model[41];  // Model in String
 } ide_devices[MAX_IDE];
 
@@ -69,7 +69,9 @@ static int ide_wait_ready(unsigned short iobase, bool check_error) {
   int r;
   while ((r = inb(iobase + ISA_STATUS)) & IDE_BSY) /* nothing */
     ;
-  if (check_error && (r & (IDE_DF | IDE_ERR)) != 0) { return -1; }
+  if (check_error && (r & (IDE_DF | IDE_ERR)) != 0) {
+    return -1;
+  }
   return 0;
 }
 
@@ -106,8 +108,8 @@ void ide_init(void) {
     insl(iobase + ISA_DATA, buffer, sizeof(buffer) / sizeof(unsigned int));
 
     unsigned char* ident = (unsigned char*) buffer;
-    unsigned int   sectors;
-    unsigned int   cmdsets = *(unsigned int*) (ident + IDE_IDENT_CMDSETS);
+    unsigned int sectors;
+    unsigned int cmdsets = *(unsigned int*) (ident + IDE_IDENT_CMDSETS);
     /* device use 48-bits or 28-bits addressing */
     if (cmdsets & (1 << 26)) {
       sectors = *(unsigned int*) (ident + IDE_IDENT_MAX_LBA_EXT);
@@ -121,15 +123,17 @@ void ide_init(void) {
     assert((*(unsigned short*) (ident + IDE_IDENT_CAPABILITIES) & 0x200) != 0);
 
     unsigned char *model = ide_devices[ideno].model,
-                  *data  = ident + IDE_IDENT_MODEL;
+                  *data = ident + IDE_IDENT_MODEL;
     unsigned int i, length = 40;
     for (i = 0; i < length; i += 2) {
       model[i] = data[i + 1], model[i + 1] = data[i];
     }
-    do { model[i] = '\0'; } while (i-- > 0 && model[i] == ' ');
+    do {
+      model[i] = '\0';
+    } while (i-- > 0 && model[i] == ' ');
 
     cprintf("ide %d: %10u(sectors), '%s'.\n", ideno, ide_devices[ideno].size,
-            ide_devices[ideno].model);
+      ide_devices[ideno].model);
   }
 
   // enable ide interrupt
@@ -142,12 +146,14 @@ bool ide_device_valid(unsigned short ideno) {
 }
 
 size_t ide_device_size(unsigned short ideno) {
-  if (ide_device_valid(ideno)) { return ide_devices[ideno].size; }
+  if (ide_device_valid(ideno)) {
+    return ide_devices[ideno].size;
+  }
   return 0;
 }
 
-int ide_read_secs(unsigned short ideno, uint32_t secno, void* dst,
-                  size_t nsecs) {
+int ide_read_secs(
+  unsigned short ideno, uint32_t secno, void* dst, size_t nsecs) {
   assert(nsecs <= MAX_NSECS && VALID_IDE(ideno));
   assert(secno < MAX_DISK_NSECS && secno + nsecs <= MAX_DISK_NSECS);
   unsigned short iobase = IO_BASE(ideno), ioctrl = IO_CTRL(ideno);
@@ -165,7 +171,9 @@ int ide_read_secs(unsigned short ideno, uint32_t secno, void* dst,
 
   int ret = 0;
   for (; nsecs > 0; nsecs--, dst += SECTSIZE) {
-    if ((ret = ide_wait_ready(iobase, 1)) != 0) { goto out; }
+    if ((ret = ide_wait_ready(iobase, 1)) != 0) {
+      goto out;
+    }
     insl(iobase, dst, SECTSIZE / sizeof(uint32_t));
   }
 
@@ -173,8 +181,8 @@ out:
   return ret;
 }
 
-int ide_write_secs(unsigned short ideno, uint32_t secno, const void* src,
-                   size_t nsecs) {
+int ide_write_secs(
+  unsigned short ideno, uint32_t secno, const void* src, size_t nsecs) {
   assert(nsecs <= MAX_NSECS && VALID_IDE(ideno));
   assert(secno < MAX_DISK_NSECS && secno + nsecs <= MAX_DISK_NSECS);
   unsigned short iobase = IO_BASE(ideno), ioctrl = IO_CTRL(ideno);
@@ -192,7 +200,9 @@ int ide_write_secs(unsigned short ideno, uint32_t secno, const void* src,
 
   int ret = 0;
   for (; nsecs > 0; nsecs--, src += SECTSIZE) {
-    if ((ret = ide_wait_ready(iobase, 1)) != 0) { goto out; }
+    if ((ret = ide_wait_ready(iobase, 1)) != 0) {
+      goto out;
+    }
     outsl(iobase, src, SECTSIZE / sizeof(uint32_t));
   }
 

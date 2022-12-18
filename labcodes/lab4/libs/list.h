@@ -3,7 +3,7 @@
 
 #ifndef __ASSEMBLER__
 
-#  include <defs.h>
+  #include <defs.h>
 
 /* *
  * Simple doubly linked list implementation.
@@ -39,8 +39,7 @@ static inline list_entry_t* list_prev(list_entry_t* listelm)
   __attribute__((always_inline));
 
 static inline void __list_add(list_entry_t* elm, list_entry_t* prev,
-                              list_entry_t* next)
-  __attribute__((always_inline));
+  list_entry_t* next) __attribute__((always_inline));
 static inline void __list_del(list_entry_t* prev, list_entry_t* next)
   __attribute__((always_inline));
 
@@ -140,11 +139,11 @@ static inline list_entry_t* list_prev(list_entry_t* listelm) {
  * This is only for internal list manipulation where we know
  * the prev/next entries already!
  * */
-static inline void __list_add(list_entry_t* elm, list_entry_t* prev,
-                              list_entry_t* next) {
+static inline void __list_add(
+  list_entry_t* elm, list_entry_t* prev, list_entry_t* next) {
   prev->next = next->prev = elm;
-  elm->next               = next;
-  elm->prev               = prev;
+  elm->next = next;
+  elm->prev = prev;
 }
 
 /* *

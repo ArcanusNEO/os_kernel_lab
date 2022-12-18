@@ -38,15 +38,21 @@ static int parse(char* buf, char** argv) {
   int argc = 0;
   while (1) {
     // find global whitespace
-    while (*buf != '\0' && strchr(WHITESPACE, *buf) != NULL) { *buf++ = '\0'; }
-    if (*buf == '\0') { break; }
+    while (*buf != '\0' && strchr(WHITESPACE, *buf) != NULL) {
+      *buf++ = '\0';
+    }
+    if (*buf == '\0') {
+      break;
+    }
 
     // save and scan past next arg
     if (argc == MAXARGS - 1) {
       cprintf("Too many arguments (max %d).\n", MAXARGS);
     }
     argv[argc++] = buf;
-    while (*buf != '\0' && strchr(WHITESPACE, *buf) == NULL) { buf++; }
+    while (*buf != '\0' && strchr(WHITESPACE, *buf) == NULL) {
+      buf++;
+    }
   }
   return argc;
 }
@@ -57,8 +63,10 @@ static int parse(char* buf, char** argv) {
  * */
 static int runcmd(char* buf, struct trapframe* tf) {
   char* argv[MAXARGS];
-  int   argc = parse(buf, argv);
-  if (argc == 0) { return 0; }
+  int argc = parse(buf, argv);
+  if (argc == 0) {
+    return 0;
+  }
   int i;
   for (i = 0; i < NCOMMANDS; i++) {
     if (strcmp(commands[i].name, argv[0]) == 0) {
@@ -75,12 +83,16 @@ void kmonitor(struct trapframe* tf) {
   cprintf("Welcome to the kernel debug monitor!!\n");
   cprintf("Type 'help' for a list of commands.\n");
 
-  if (tf != NULL) { print_trapframe(tf); }
+  if (tf != NULL) {
+    print_trapframe(tf);
+  }
 
   char* buf;
   while (1) {
     if ((buf = readline("K> ")) != NULL) {
-      if (runcmd(buf, tf) < 0) { break; }
+      if (runcmd(buf, tf) < 0) {
+        break;
+      }
     }
   }
 }

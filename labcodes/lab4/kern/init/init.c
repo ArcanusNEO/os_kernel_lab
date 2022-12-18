@@ -14,8 +14,8 @@
 #include <trap.h>
 #include <vmm.h>
 
-int         kern_init(void) __attribute__((noreturn));
-void        grade_backtrace(void);
+int kern_init(void) __attribute__((noreturn));
+void grade_backtrace(void);
 static void lab1_switch_test(void);
 
 int kern_init(void) {
@@ -71,12 +71,13 @@ void grade_backtrace(void) {
 
 static void lab1_print_cur_status(void) {
   static int round = 0;
-  uint16_t   reg1, reg2, reg3, reg4;
-  asm volatile("mov %%cs, %0;"
-               "mov %%ds, %1;"
-               "mov %%es, %2;"
-               "mov %%ss, %3;"
-               : "=m"(reg1), "=m"(reg2), "=m"(reg3), "=m"(reg4));
+  uint16_t reg1, reg2, reg3, reg4;
+  asm volatile(
+    "mov %%cs, %0;"
+    "mov %%ds, %1;"
+    "mov %%es, %2;"
+    "mov %%ss, %3;"
+    : "=m"(reg1), "=m"(reg2), "=m"(reg3), "=m"(reg4));
   cprintf("%d: @ring %d\n", round, reg1 & 3);
   cprintf("%d:  cs = %x\n", round, reg1);
   cprintf("%d:  ds = %x\n", round, reg2);

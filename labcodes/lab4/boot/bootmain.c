@@ -74,7 +74,9 @@ static void readseg(uintptr_t va, uint32_t count, uint32_t offset) {
   // If this is too slow, we could read lots of sectors at a time.
   // We'd write more to memory than asked, but it doesn't matter --
   // we load in increasing order.
-  for (; va < end_va; va += SECTSIZE, secno++) { readsect((void*) va, secno); }
+  for (; va < end_va; va += SECTSIZE, secno++) {
+    readsect((void*) va, secno);
+  }
 }
 
 /* bootmain - the entry of bootloader */
@@ -83,12 +85,14 @@ void bootmain(void) {
   readseg((uintptr_t) ELFHDR, SECTSIZE * 8, 0);
 
   // is this a valid ELF?
-  if (ELFHDR->e_magic != ELF_MAGIC) { goto bad; }
+  if (ELFHDR->e_magic != ELF_MAGIC) {
+    goto bad;
+  }
 
   struct proghdr *ph, *eph;
 
   // load each program segment (ignores ph flags)
-  ph  = (struct proghdr*) ((uintptr_t) ELFHDR + ELFHDR->e_phoff);
+  ph = (struct proghdr*) ((uintptr_t) ELFHDR + ELFHDR->e_phoff);
   eph = ph + ELFHDR->e_phnum;
   for (; ph < eph; ph++) {
     readseg(ph->p_va & 0xFFFFFF, ph->p_memsz, ph->p_offset);

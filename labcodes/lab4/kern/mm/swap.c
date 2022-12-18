@@ -17,7 +17,7 @@
 #define MAX_SEQ_NO 10
 
 static struct swap_manager* sm;
-size_t                      max_swap_offset;
+size_t max_swap_offset;
 
 volatile int swap_init_ok = 0;
 
@@ -34,7 +34,7 @@ int swap_init(void) {
     panic("bad max_swap_offset %08x.\n", max_swap_offset);
   }
 
-  sm    = &swap_manager_fifo;
+  sm = &swap_manager_fifo;
   int r = sm->init();
 
   if (r == 0) {
@@ -54,8 +54,8 @@ int swap_tick_event(struct mm_struct* mm) {
   return sm->tick_event(mm);
 }
 
-int swap_map_swappable(struct mm_struct* mm, uintptr_t addr, struct Page* page,
-                       int swap_in) {
+int swap_map_swappable(
+  struct mm_struct* mm, uintptr_t addr, struct Page* page, int swap_in) {
   return sm->map_swappable(mm, addr, page, swap_in);
 }
 
@@ -81,7 +81,7 @@ int swap_out(struct mm_struct* mm, int n, int in_tick) {
 
     // cprintf("SWAP: choose victim page 0x%08x\n", page);
 
-    v           = page->pra_vaddr;
+    v = page->pra_vaddr;
     pte_t* ptep = get_pte(mm->pgdir, v, 0);
     assert((*ptep & PTE_P) != 0);
 
@@ -111,9 +111,11 @@ int swap_in(struct mm_struct* mm, uintptr_t addr, struct Page** ptr_result) {
   // %d\n", ptep, (*ptep)>>8, addr, result, (result-pages));
 
   int r;
-  if ((r = swapfs_read((*ptep), result)) != 0) { assert(r != 0); }
+  if ((r = swapfs_read((*ptep), result)) != 0) {
+    assert(r != 0);
+  }
   cprintf("swap_in: load disk swap entry %d with swap_page in vadr 0x%x\n",
-          (*ptep) >> 8, addr);
+    (*ptep) >> 8, addr);
   *ptr_result = result;
   return 0;
 }
@@ -143,7 +145,7 @@ static inline int check_content_access(void) {
 }
 
 struct Page* check_rp[CHECK_VALID_PHY_PAGE_NUM];
-pte_t*       check_ptep[CHECK_VALID_PHY_PAGE_NUM];
+pte_t* check_ptep[CHECK_VALID_PHY_PAGE_NUM];
 unsigned int check_swap_addr[CHECK_VALID_VIR_PAGE_NUM];
 
 extern free_area_t free_area;
@@ -153,7 +155,7 @@ extern free_area_t free_area;
 
 static void check_swap(void) {
   // backup mem env
-  int           ret, count = 0, total = 0, i;
+  int ret, count = 0, total = 0, i;
   list_entry_t* le = &free_list;
   while ((le = list_next(le)) != &free_list) {
     struct Page* p = le2page(le, page_link);
@@ -184,7 +186,7 @@ static void check_swap(void) {
   // setup the temp Page Table vaddr 0~4MB
   cprintf("setup Page Table for vaddr 0X1000, so alloc a page\n");
   pte_t* temp_ptep = NULL;
-  temp_ptep        = get_pte(mm->pgdir, BEING_CHECK_VALID_VADDR, 1);
+  temp_ptep = get_pte(mm->pgdir, BEING_CHECK_VALID_VADDR, 1);
   assert(temp_ptep != NULL);
   cprintf("setup Page Table vaddr 0~4MB OVER!\n");
 
@@ -200,8 +202,10 @@ static void check_swap(void) {
   // assert(alloc_page() == NULL);
 
   unsigned int nr_free_store = nr_free;
-  nr_free                    = 0;
-  for (i = 0; i < CHECK_VALID_PHY_PAGE_NUM; i++) { free_pages(check_rp[i], 1); }
+  nr_free = 0;
+  for (i = 0; i < CHECK_VALID_PHY_PAGE_NUM; i++) {
+    free_pages(check_rp[i], 1);
+  }
   assert(nr_free == CHECK_VALID_PHY_PAGE_NUM);
 
   cprintf("set up init env for check_swap begin!\n");
@@ -229,13 +233,15 @@ static void check_swap(void) {
   assert(ret == 0);
 
   // restore kernel mem env
-  for (i = 0; i < CHECK_VALID_PHY_PAGE_NUM; i++) { free_pages(check_rp[i], 1); }
+  for (i = 0; i < CHECK_VALID_PHY_PAGE_NUM; i++) {
+    free_pages(check_rp[i], 1);
+  }
 
   // free_page(pte2page(*temp_ptep));
 
   mm_destroy(mm);
 
-  nr_free   = nr_free_store;
+  nr_free = nr_free_store;
   free_list = free_list_store;
 
   le = &free_list;
