@@ -15,16 +15,14 @@
 /* ------------- process/thread mechanism design&implementation -------------
 (an simplified Linux process/thread mechanism )
 introduction:
-  ucore implements a simple process/thread mechanism. process contains the
-independent memory sapce, at least one threads for execution, the kernel
-data(for management), processor state (for context switch), files(in lab6), etc.
-ucore needs to manage all these details efficiently. In ucore, a thread is just
-a special kind of process(share process's memory).
+  ucore implements a simple process/thread mechanism. process contains the independent memory sapce, at least one threads
+for execution, the kernel data(for management), processor state (for context switch), files(in lab6), etc. ucore needs to
+manage all these details efficiently. In ucore, a thread is just a special kind of process(share process's memory).
 ------------------------------
 process state       :     meaning               -- reason
     PROC_UNINIT     :   uninitialized           -- alloc_proc
-    PROC_SLEEPING   :   sleeping                -- try_free_pages, do_wait,
-do_sleep PROC_RUNNABLE   :   runnable(maybe running) -- proc_init, wakeup_proc,
+    PROC_SLEEPING   :   sleeping                -- try_free_pages, do_wait, do_sleep
+    PROC_RUNNABLE   :   runnable(maybe running) -- proc_init, wakeup_proc, 
     PROC_ZOMBIE     :   almost dead             -- do_exit
 
 -----------------------------
@@ -33,11 +31,11 @@ process state changing:
   alloc_proc                                 RUNNING
       +                                   +--<----<--+
       +                                   + proc_run +
-      V                                   +-->---->--+
-PROC_UNINIT -- proc_init/wakeup_proc --> PROC_RUNNABLE --
-try_free_pages/do_wait/do_sleep --> PROC_SLEEPING -- A      + + |      +---
-do_exit --> PROC_ZOMBIE                                +
-                                           + +
+      V                                   +-->---->--+ 
+PROC_UNINIT -- proc_init/wakeup_proc --> PROC_RUNNABLE -- try_free_pages/do_wait/do_sleep --> PROC_SLEEPING --
+                                           A      +                                                           +
+                                           |      +--- do_exit --> PROC_ZOMBIE                                +
+                                           +                                                                  + 
                                            -----------------------wakeup_proc----------------------------------
 -----------------------------
 process relations
@@ -48,14 +46,14 @@ younger sibling:  proc->yptr    (proc is older sibling)
 -----------------------------
 related syscall for process:
 SYS_exit        : process exit,                           -->do_exit
-SYS_fork        : create child process, dup mm -->do_fork-->wakeup_proc SYS_wait
-: wait process                            -->do_wait SYS_exec        : after
-fork, process execute a program   -->load a program and refresh the mm SYS_clone
-: create child thread                     -->do_fork-->wakeup_proc SYS_yield :
-process flag itself need resecheduling, -- proc->need_sched=1, then scheduler
-will rescheule this process SYS_sleep       : process sleep -->do_sleep SYS_kill
-: kill process                            -->do_kill-->proc->flags |= PF_EXITING
-                                                                 -->wakeup_proc-->do_wait-->do_exit
+SYS_fork        : create child process, dup mm            -->do_fork-->wakeup_proc
+SYS_wait        : wait process                            -->do_wait
+SYS_exec        : after fork, process execute a program   -->load a program and refresh the mm
+SYS_clone       : create child thread                     -->do_fork-->wakeup_proc
+SYS_yield       : process flag itself need resecheduling, -- proc->need_sched=1, then scheduler will rescheule this process
+SYS_sleep       : process sleep                           -->do_sleep 
+SYS_kill        : kill process                            -->do_kill-->proc->flags |= PF_EXITING
+                                                                 -->wakeup_proc-->do_wait-->do_exit   
 SYS_getpid      : get the process's pid
 
 */
@@ -87,22 +85,34 @@ void switch_to(struct context* from, struct context* to);
 static struct proc_struct* alloc_proc(void) {
   struct proc_struct* proc = kmalloc(sizeof(struct proc_struct));
   if (proc != NULL) {
-    // LAB4:EXERCISE1 YOUR CODE
+    //LAB4:EXERCISE1 YOUR CODE
     /*
      * below fields in proc_struct need to be initialized
      *       enum proc_state state;                      // Process state
      *       int pid;                                    // Process ID
-     *       int runs;                                   // the running times of
-     * Proces uintptr_t kstack;                           // Process kernel
-     * stack volatile bool need_resched;                 // bool value: need to
-     * be rescheduled to release CPU? struct proc_struct *parent; // the parent
-     * process struct mm_struct *mm;                       // Process's memory
-     * management field struct context context;                     // Switch
-     * here to run process struct trapframe *tf;                       // Trap
-     * frame for current interrupt uintptr_t cr3; // CR3 register: the base addr
-     * of Page Directroy Table(PDT) uint32_t flags; // Process flag char
-     * name[PROC_NAME_LEN + 1];               // Process name
+     *       int runs;                                   // the running times of Proces
+     *       uintptr_t kstack;                           // Process kernel stack
+     *       volatile bool need_resched;                 // bool value: need to be rescheduled to release CPU?
+     *       struct proc_struct *parent;                 // the parent process
+     *       struct mm_struct *mm;                       // Process's memory management field
+     *       struct context context;                     // Switch here to run process
+     *       struct trapframe *tf;                       // Trap frame for current interrupt
+     *       uintptr_t cr3;                              // CR3 register: the base addr of Page Directroy Table(PDT)
+     *       uint32_t flags;                             // Process flag
+     *       char name[PROC_NAME_LEN + 1];               // Process name
      */
+    proc->state = PROC_UNINIT;
+    proc->pid = -1;
+    proc->runs = 0;
+    proc->kstack = 0;
+    proc->need_resched = 0;
+    proc->parent = NULL;
+    proc->mm = NULL;
+    memset(&(proc->context), 0, sizeof(struct context));
+    proc->tf = NULL;
+    proc->cr3 = boot_cr3;
+    proc->flags = 0;
+    memset(proc->name, 0, PROC_NAME_LEN);
   }
   return proc;
 }
@@ -225,8 +235,7 @@ static void put_kstack(struct proc_struct* proc) {
   free_pages(kva2page((void*) (proc->kstack)), KSTACKPAGE);
 }
 
-// copy_mm - process "proc" duplicate OR share process "current"'s mm according
-// clone_flags
+// copy_mm - process "proc" duplicate OR share process "current"'s mm according clone_flags
 //         - if clone_flags & CLONE_VM, then "share" ; else "duplicate"
 static int copy_mm(uint32_t clone_flags, struct proc_struct* proc) {
   assert(current->mm == NULL);
@@ -250,10 +259,8 @@ static void copy_thread(
 
 /* do_fork -     parent process for a new child process
  * @clone_flags: used to guide how to clone the child process
- * @stack:       the parent's user stack pointer. if stack==0, It means to fork
- * a kernel thread.
- * @tf:          the trapframe info, which will be copied to child process's
- * proc->tf
+ * @stack:       the parent's user stack pointer. if stack==0, It means to fork a kernel thread.
+ * @tf:          the trapframe info, which will be copied to child process's proc->tf
  */
 int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe* tf) {
   int ret = -E_NO_FREE_PROC;
@@ -262,29 +269,58 @@ int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe* tf) {
     goto fork_out;
   }
   ret = -E_NO_MEM;
-  // LAB4:EXERCISE2 YOUR CODE
+  //LAB4:EXERCISE2 YOUR CODE
   /*
-   * Some Useful MACROs, Functions and DEFINEs, you can use them in below
-   * implementation. MACROs or Functions: alloc_proc:   create a proc struct and
-   * init fields (lab4:exercise1) setup_kstack: alloc pages with size KSTACKPAGE
-   * as process kernel stack copy_mm:      process "proc" duplicate OR share
-   * process "current"'s mm according clone_flags if clone_flags & CLONE_VM,
-   * then "share" ; else "duplicate" copy_thread:  setup the trapframe on the
-   * process's kernel stack top and setup the kernel entry point and stack of
-   * process hash_proc:    add proc into proc hash_list get_pid:      alloc a
-   * unique pid for process wakeup_proc:  set proc->state = PROC_RUNNABLE
-   * VARIABLES:
-   *   proc_list:    the process set's list
-   *   nr_process:   the number of process set
-   */
+     * Some Useful MACROs, Functions and DEFINEs, you can use them in below implementation.
+     * MACROs or Functions:
+     *   alloc_proc:   create a proc struct and init fields (lab4:exercise1)
+     *   setup_kstack: alloc pages with size KSTACKPAGE as process kernel stack
+     *   copy_mm:      process "proc" duplicate OR share process "current"'s mm according clone_flags
+     *                 if clone_flags & CLONE_VM, then "share" ; else "duplicate"
+     *   copy_thread:  setup the trapframe on the  process's kernel stack top and
+     *                 setup the kernel entry point and stack of process
+     *   hash_proc:    add proc into proc hash_list
+     *   get_pid:      alloc a unique pid for process
+     *   wakeup_proc:  set proc->state = PROC_RUNNABLE
+     * VARIABLES:
+     *   proc_list:    the process set's list
+     *   nr_process:   the number of process set
+     */
 
-  // 1. call alloc_proc to allocate a proc_struct
-  // 2. call setup_kstack to allocate a kernel stack for child process
-  // 3. call copy_mm to dup OR share mm according clone_flag
-  // 4. call copy_thread to setup tf & context in proc_struct
-  // 5. insert proc_struct into hash_list && proc_list
-  // 6. call wakeup_proc to make the new child process RUNNABLE
-  // 7. set ret vaule using child proc's pid
+  //    1. call alloc_proc to allocate a proc_struct
+  //    2. call setup_kstack to allocate a kernel stack for child process
+  //    3. call copy_mm to dup OR share mm according clone_flag
+  //    4. call copy_thread to setup tf & context in proc_struct
+  //    5. insert proc_struct into hash_list && proc_list
+  //    6. call wakeup_proc to make the new child process RUNNABLE
+  //    7. set ret vaule using child proc's pid
+  if ((proc = alloc_proc()) == NULL) {
+    goto fork_out;
+  }
+
+  proc->parent = current;
+
+  if (setup_kstack(proc) != 0) {
+    goto bad_fork_cleanup_proc;
+  }
+  if (copy_mm(clone_flags, proc) != 0) {
+    goto bad_fork_cleanup_kstack;
+  }
+  copy_thread(proc, stack, tf);
+
+  bool intr_flag;
+  local_intr_save(intr_flag);
+  {
+    proc->pid = get_pid();
+    hash_proc(proc);
+    list_add(&proc_list, &(proc->list_link));
+    nr_process++;
+  }
+  local_intr_restore(intr_flag);
+
+  wakeup_proc(proc);
+
+  ret = proc->pid;
 fork_out:
   return ret;
 
@@ -296,10 +332,8 @@ bad_fork_cleanup_proc:
 }
 
 // do_exit - called by sys_exit
-//   1. call exit_mmap & put_pgdir & mm_destroy to free the almost all memory
-//   space of process
-//   2. set process' state as PROC_ZOMBIE, then call wakeup_proc(parent) to ask
-//   parent reclaim itself.
+//   1. call exit_mmap & put_pgdir & mm_destroy to free the almost all memory space of process
+//   2. set process' state as PROC_ZOMBIE, then call wakeup_proc(parent) to ask parent reclaim itself.
 //   3. call scheduler to switch to other process
 int do_exit(int error_code) {
   panic("process exit!!.\n");
@@ -349,8 +383,7 @@ void proc_init(void) {
   assert(initproc != NULL && initproc->pid == 1);
 }
 
-// cpu_idle - at the end of kern_init, the first kernel thread idleproc will do
-// below works
+// cpu_idle - at the end of kern_init, the first kernel thread idleproc will do below works
 void cpu_idle(void) {
   while (1) {
     if (current->need_resched) {
