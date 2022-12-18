@@ -54,9 +54,10 @@ static int _fifo_map_swappable(
 
   assert(entry != NULL && head != NULL);
   // record the page access situlation
-  /*LAB3 EXERCISE 2: YOUR CODE*/
+  /*LAB3 EXERCISE 2: 2013280*/
   //(1)link the most recent arrival page at the back of the pra_list_head
   // qeueue.
+  list_add(head, entry);
   return 0;
 }
 
@@ -71,9 +72,16 @@ static int _fifo_swap_out_victim(
   assert(head != NULL);
   assert(in_tick == 0);
   /* Select the victim */
-  /*LAB3 EXERCISE 2: YOUR CODE*/
+  /*LAB3 EXERCISE 2: 2013280*/
   //(1)  unlink the  earliest arrival page in front of pra_list_head qeueue
   //(2)  assign the value of *ptr_page to the addr of this page
+  /* Select the tail */
+  list_entry_t* le = head->prev;
+  assert(head != le);
+  struct Page* p = le2page(le, pra_page_link);
+  list_del(le);
+  assert(p != NULL);
+  *ptr_page = p;
   return 0;
 }
 
