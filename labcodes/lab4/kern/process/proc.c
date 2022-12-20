@@ -85,7 +85,7 @@ void switch_to(struct context* from, struct context* to);
 static struct proc_struct* alloc_proc(void) {
   struct proc_struct* proc = kmalloc(sizeof(struct proc_struct));
   if (proc != NULL) {
-    //LAB4:EXERCISE1 YOUR CODE
+    //LAB4:EXERCISE1 2013280
     /*
      * below fields in proc_struct need to be initialized
      *       enum proc_state state;                      // Process state
@@ -269,7 +269,7 @@ int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe* tf) {
     goto fork_out;
   }
   ret = -E_NO_MEM;
-  //LAB4:EXERCISE2 YOUR CODE
+  //LAB4:EXERCISE2 2013280
   /*
      * Some Useful MACROs, Functions and DEFINEs, you can use them in below implementation.
      * MACROs or Functions:
@@ -314,7 +314,7 @@ int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe* tf) {
     proc->pid = get_pid();
     hash_proc(proc);
     list_add(&proc_list, &(proc->list_link));
-    nr_process++;
+    ++nr_process;
   }
   local_intr_restore(intr_flag);
 
